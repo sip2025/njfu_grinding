@@ -15,12 +15,12 @@ import time
 import os
 
 # --- 宏定义 ---
-USERNAME = ""
-PASSWORD = ""
-EXAM_URL = "http://202.119.208.106/servlet/pc/ExamCaseController?exam_id=47091939-045b-4d5c-9a34-3a28d99764df"
-LOOP_COUNT = 50
-BASE_URL = "http://202.119.208.106"
-HEADLESS = False  # 设置为 True 启用无头模式（看不到浏览器窗口）
+USERNAME = "2410407105"
+PASSWORD = "30287X"
+EXAM_URL = "http://202.119.208.57/servlet/pc/ExamCaseController?exam_id=0f770163-73fe-4328-861a-dfd15ce26726"
+LOOP_COUNT = 2
+BASE_URL = "http://202.119.208.57"
+HEADLESS = True  # 设置为 True 启用无头模式（看不到浏览器窗口）
 USE_EDGE = True   # 设置为 True 使用 Edge 浏览器，False 使用 Chrome
 # WebDriver 获取策略: 'auto' (自动尝试所有), 'manager' (仅 webdriver-manager), 'system' (仅系统路径), 'local' (仅本地文件)
 DRIVER_STRATEGY = 'system'
@@ -319,7 +319,6 @@ def auto_exam_process(driver):
         print("等待跳转到报告页面...")
         wait = WebDriverWait(driver, 15)
         try:
-            # 等待页面跳转到结果页或最终报告页
             wait.until(
                 EC.any_of(
                     EC.url_contains("ExamCaseResult.jspx"),
@@ -329,16 +328,13 @@ def auto_exam_process(driver):
             )
 
             current_url = driver.current_url
-            # 如果当前是结果页，尝试点击“查看详情”
             if "ExamCaseResult.jspx" in current_url:
                 try:
-                    # 等待“查看详情”按钮出现并可点击
                     view_details_btn = wait.until(
                         EC.element_to_be_clickable((By.XPATH, "//button[contains(., '查看详情')]"))
                     )
                     print("✅ 发现'查看详情'按钮，点击进入报告页面...")
                     view_details_btn.click()
-                    # 点击后，再次等待跳转到最终报告页
                     wait.until(
                         EC.any_of(
                             EC.url_contains("ExamCaseReport"),
@@ -346,14 +342,12 @@ def auto_exam_process(driver):
                         )
                     )
                 except Exception:
-                    # 如果找不到按钮或跳转失败，也没关系，可能当前页面已包含足够信息
                     print("ℹ️  在结果页上未找到'查看详情'按钮或点击后未跳转，尝试直接解析当前页")
 
             print(f"✅ 步骤 6/6: 成功进入报告页面!")
             return driver.page_source
 
         except Exception:
-            # 如果15秒内上述任何一个URL都没有出现，则超时
             print("❌ 等待超时，未能跳转到报告页面")
             print(f"最终URL: {driver.current_url}")
             return None
@@ -371,67 +365,115 @@ def auto_exam_process(driver):
         return None
 
 def parse_report_page(html_content, question_bank):
+    def is_question_title(tag):
+        if not getattr(tag, 'name', None):
+            return False
+        if tag.name != 'span':
+            return False
+        classes = tag.get('class', [])
+        if 'choiceTitle' not in classes:
+            return False
+        text = tag.get_text(strip=True)
+        return bool(re.match(r'^\d+[、.]', text))
+
+    def clean_question_text(text):
+        text = re.sub(r'^\d+[、.]\s*', '', text).strip()
+        text = re.sub(r'（?\d+\.\d+分）?', '', text).strip()
+        return text.replace('（）', '').replace('()', '').strip()
+
+    def normalize_answer(answer):
+        if not answer:
+            return None
+        answer = answer.replace('.', '').replace(' ', '').strip()
+        if answer.lower() == 'true':
+            return '正确'
+        if answer.lower() == 'false':
+            return '错误'
+        return answer
+
+    def extract_answer(block):
+        selectors = [
+            'span[style*="color:green"][style*="font-weight"]',
+            'span[style*="color: green"]',
+            '.answer span[style*="color"]',
+            'span.answer'
+        ]
+        for selector in selectors:
+            span = block.select_one(selector)
+            if span:
+                return normalize_answer(span.get_text(strip=True))
+        label = block.find(string=re.compile(r'正确答案'))
+        if label:
+            parent = label.find_parent()
+            if parent:
+                span = parent.select_one('span[style*="color"]')
+                if span:
+                    return normalize_answer(span.get_text(strip=True))
+        return None
+
     soup = BeautifulSoup(html_content, 'html.parser')
+    panels = soup.select('.ui-panel-content')
+
+    if not panels:
+        print('⚠️ 警告：未找到 .ui-panel-content 容器，页面结构可能已变更')
+        return question_bank
+
+    print(f'✅ 找到 {len(panels)} 个面板容器')
     new_questions_found = 0
-    question_elements = soup.select('div[id*="j_idt191_content"] > span.choiceTitle:first-of-type, div[id*="j_idt191_content"] > hr + span.choiceTitle')
-    if not question_elements:
-        print("⚠️ 警告：在报告页面上没有找到问题元素（选择器1）")
-        question_elements = soup.select('a[id^="archor-"] + span.choiceTitle')
-        if not question_elements:
-            print("⚠️ 警告：备用选择器也未找到问题")
-            return question_bank
-        else:
-            print(f"✅ 使用备用选择器找到 {len(question_elements)} 个题目")
-    else:
-        print(f"✅ 找到 {len(question_elements)} 个题目")
-    for element in question_elements:
-        try:
-            question_text = element.get_text(strip=True) if element else None
-            if not question_text:
+
+    for panel in panels:
+        children = [child for child in panel.children if getattr(child, 'name', None)]
+        idx = 0
+        while idx < len(children):
+            node = children[idx]
+            idx += 1
+            if not is_question_title(node):
                 continue
-            score_span = element.find_next_sibling()
-            options_container = score_span.find_next_sibling() if score_span else None
-            answer_container = options_container.find_next_sibling() if options_container else None
-            correct_answer_element = None
-            if answer_container:
-                correct_answer_element = answer_container.select_one('span[style*="color:green"][style*="font-weight: bold"]')
-            if not correct_answer_element:
-                correct_answer_element = answer_container.select_one('span[style*="color: green"]') if answer_container else None
-            correct_answer = correct_answer_element.get_text(strip=True) if correct_answer_element else None
-            if correct_answer:
-                correct_answer = correct_answer.replace('.', '').replace(' ', '')
-                if correct_answer == "true":
-                    correct_answer = "正确"
-                elif correct_answer == "false":
-                    correct_answer = "错误"
+
+            raw_question = node.get_text(strip=True)
             options = []
-            if options_container:
-                option_spans = options_container.select('div[id*="j_idt"] > span.choiceTitle, div[id*="j_idt"] > div.choiceTitle')
-                if not option_spans:
-                    option_spans = options_container.select('span.choiceTitle, div.choiceTitle')
-                options = [span.get_text(strip=True) for span in option_spans]
-            if question_text and correct_answer:
-                question_text = re.sub(r'^\d+[、.]\s*', '', question_text).strip()
-                question_text = re.sub(r'\(\d+\.\d+分\)', '', question_text).strip()
-                question_text = question_text.replace('（）', '').replace('()', '').strip()
-                if question_text not in question_bank:
-                    question_bank[question_text] = {
-                        'answer': correct_answer,
-                        'options': options
-                    }
+            correct_answer = None
+
+            while idx < len(children):
+                current = children[idx]
+                idx += 1
+                if current.name == 'hr':
+                    break
+                if is_question_title(current):
+                    idx -= 1
+                    break
+                if current.name != 'div':
+                    continue
+
+                opt_spans = current.select('span.choiceTitle')
+                for opt in opt_spans:
+                    opt_text = opt.get_text(strip=True)
+                    if not re.match(r'^\d+[、.]', opt_text):
+                        options.append(opt_text)
+
+                if not correct_answer:
+                    correct_answer = extract_answer(current)
+
+            clean_text = clean_question_text(raw_question)
+            correct_answer = normalize_answer(correct_answer)
+
+            if clean_text and correct_answer:
+                is_new = clean_text not in question_bank
+                record = question_bank.setdefault(clean_text, {})
+                record['answer'] = correct_answer
+                if options:
+                    unique_options = list(dict.fromkeys(opt for opt in options if opt))
+                    if unique_options:
+                        record['options'] = unique_options
+                if is_new:
                     new_questions_found += 1
-                    print(f"  新增题目: {question_text[:30]}... => {correct_answer}")
-                else:
-                    question_bank[question_text]['answer'] = correct_answer
-                    if options:
-                        question_bank[question_text]['options'] = options
-        except Exception as e:
-            print(f"⚠️ 解析单个题目时出错: {e}")
-            continue
-    if new_questions_found > 0:
-        print(f"✅ 成功解析并添加了 {new_questions_found} 个新问题到题库")
+                    print(f'  新增题目: {clean_text[:30]}... => {correct_answer}')
+
+    if new_questions_found:
+        print(f'✅ 成功解析并添加/更新 {new_questions_found} 个题目')
     else:
-        print("ℹ️ 报告页面解析完成，没有发现新问题")
+        print('ℹ️ 报告页面解析完成，没有发现新问题')
+
     return question_bank
 
 def count_categories(bank):
