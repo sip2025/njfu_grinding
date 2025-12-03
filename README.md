@@ -258,10 +258,15 @@ python scraper.py
 </div>
 
 ---
+## ⭐ Star 历史图
 
-##  许可证
+<div align="center">
+  <a href="https://api.star-history.com/charts.html?repos=keggin-CHN/njfu_grinding" target="_blank" rel="noopener">
+    <img alt="Star history for keggin-CHN/njfu_grinding" src="https://api.star-history.com/svg?repos=keggin-CHN/njfu_grinding&width=700" />
+  </a>
+  <p><i>Star 增长趋势</i></p>
+</div>
 
-本项目采用开源许可证,详见 [LICENSE](LICENSE) 文件。
 
 ## 👥 贡献
 
@@ -272,3 +277,6 @@ python scraper.py
 <div align="center">
   <sub>Built with ❤️ for NJFU students</sub>
 </div>
+
+
+
