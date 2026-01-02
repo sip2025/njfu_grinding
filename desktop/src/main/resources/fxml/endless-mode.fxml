@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefHeight="600.0" prefWidth="800.0" styleClass="root" stylesheets="@../css/style.css" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.examapp.controller.EndlessModeController">
+    <top>
+        <!-- Header with back button, title and stats in right corner -->
+        <VBox>
+            <HBox alignment="CENTER_LEFT" spacing="10.0" BorderPane.alignment="CENTER">
+                <children>
+                    <Button fx:id="backButton" onAction="#handleBack" styleClass="back-button" text="‹ 返回" />
+                    <Label fx:id="subjectNameLabel" styleClass="header-title" text="无尽模式" HBox.hgrow="ALWAYS" />
+                    <Label fx:id="streakLabel" text="当前连对: 0" styleClass="endless-mode-stats" />
+                    <Label fx:id="bestStreakLabel" text="最高纪录: 0" styleClass="endless-mode-stats" />
+                </children>
+                <padding>
+                    <Insets bottom="10.0" left="20.0" right="20.0" top="10.0" />
+                </padding>
+            </HBox>
+        </VBox>
+    </top>
+    <center>
+        <SplitPane fx:id="mainSplitPane" dividerPositions="1.0">
+            <!-- Main Content -->
+            <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent;">
+                <content>
+                    <VBox alignment="TOP_LEFT" spacing="15.0">
+                        <padding>
+                            <Insets bottom="20.0" left="20.0" right="20.0" top="10.0" />
+                        </padding>
+                        <children>
+                            <!-- Question Info with star button -->
+                            <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="question-info-bar">
+                                <children>
+                                    <Label fx:id="questionNumberLabel" text="第 1 题"
+                                           style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #1976D2;"/>
+                                    <Label fx:id="questionTypeLabel" text="[单选题]"
+                                           style="-fx-font-size: 14px; -fx-text-fill: gray;"/>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Button fx:id="favoriteButton" text="☆ 星标" onAction="#toggleStar"/>
+                                </children>
+                            </HBox>
+
+                            <!-- Question Text -->
+                            <Label fx:id="questionTextLabel" styleClass="question-text-label" text="这里是题目内容..." wrapText="true" />
+
+                            <!-- Options -->
+                            <VBox fx:id="optionsContainer" spacing="10.0" />
+
+                            <!-- Feedback -->
+                            <VBox fx:id="feedbackPane" managed="false" styleClass="feedback-pane" visible="false">
+                                <children>
+                                    <Label fx:id="feedbackLabel" styleClass="feedback-label" text="反馈信息" />
+                                    <VBox fx:id="explanationPane" managed="false" spacing="5.0" visible="false">
+                                        <children>
+                                            <Label styleClass="explanation-title" text="解析:" />
+                                            <Label fx:id="explanationLabel" styleClass="explanation-label" wrapText="true" />
+                                        </children>
+                                        <VBox.margin>
+                                            <Insets top="10.0" />
+                                        </VBox.margin>
+                                    </VBox>
+                                </children>
+                            </VBox>
+
+                            <Button fx:id="submitButton" onAction="#evaluateAnswer" text="提交答案" styleClass="submit-button" maxWidth="Infinity" visible="false" managed="false" />
+                        </children>
+                    </VBox>
+                </content>
+            </ScrollPane>
+            
+            <!-- AI Panel Container -->
+            <VBox fx:id="aiPanelContainer" managed="false" visible="false" minWidth="400" maxWidth="500">
+                <fx:include fx:id="aiPanel" source="ai-panel.fxml"/>
+            </VBox>
+        </SplitPane>
+    </center>
+    <bottom>
+        <HBox spacing="10" alignment="CENTER" style="-fx-padding: 15; -fx-background-color: #f0f0f0;">
+            <children>
+                <Button fx:id="previousButton" text="← 上一题" onAction="#handlePrevious"
+                        prefWidth="120" prefHeight="40"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button fx:id="aiAssistButton" text="AI答疑" onAction="#handleAIAssist"
+                        prefWidth="120" prefHeight="40"/>
+                <Button fx:id="continueButton" text="继续 →" onAction="#handleContinue"
+                        prefWidth="120" prefHeight="40" visible="false" managed="false"/>
+                <Button fx:id="nextButton" text="下一题 →" onAction="#handleNext"
+                        prefWidth="120" prefHeight="40"/>
+            </children>
+        </HBox>
+    </bottom>
+</BorderPane>

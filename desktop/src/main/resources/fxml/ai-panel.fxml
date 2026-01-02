@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.web.WebView?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.examapp.controller.AIPanelController"
+      spacing="0"
+      styleClass="ai-panel"
+      prefWidth="400"
+      style="-fx-background-color: white; -fx-border-color: #ddd; -fx-border-width: 0 0 0 1;">
+    
+    <!-- 标题栏 -->
+    <HBox alignment="CENTER_LEFT" spacing="8" style="-fx-background-color: #f5f5f5; -fx-padding: 12;">
+        <Label text="AI答疑" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        
+        <!-- 模型图标 -->
+        <ImageView fx:id="modelIconView" fitWidth="20" fitHeight="20" preserveRatio="true"/>
+        
+        <!-- 模型名称 -->
+        <Label fx:id="modelNameLabel" text="AI助手" style="-fx-font-size: 12px; -fx-text-fill: #666;"/>
+        
+        <!-- 刷新按钮 -->
+        <Button fx:id="refreshButton" text="↻" onAction="#handleRefresh"
+                style="-fx-background-color: transparent; -fx-text-fill: #1976D2; -fx-font-size: 18px; -fx-cursor: hand;"/>
+        
+        <!-- 关闭按钮 -->
+        <Button fx:id="closeButton" text="✕" onAction="#handleClose"
+                style="-fx-background-color: transparent; -fx-text-fill: #666; -fx-font-size: 16px; -fx-cursor: hand;"/>
+    </HBox>
+    
+    <!-- 内容区域 -->
+    <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background-color: white;">
+        <VBox fx:id="contentContainer" spacing="16" style="-fx-padding: 16;">
+            
+            <!-- 加载状态 -->
+            <VBox fx:id="loadingContainer" alignment="CENTER" spacing="12" visible="false" managed="false">
+                <ProgressIndicator/>
+                <Label text="AI正在思考中..." style="-fx-text-fill: #666;"/>
+            </VBox>
+            
+            <!-- AI响应内容（使用WebView渲染Markdown） -->
+            <WebView fx:id="responseWebView" visible="false" managed="false" prefHeight="600"/>
+            
+            <!-- 错误信息 -->
+            <Label fx:id="errorLabel" wrapText="true" visible="false" managed="false"
+                   style="-fx-text-fill: #d32f2f; -fx-padding: 12; -fx-background-color: #ffebee; -fx-background-radius: 4;"/>
+        </VBox>
+    </ScrollPane>
+</VBox>

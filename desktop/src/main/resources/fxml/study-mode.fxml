@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.examapp.controller.StudyModeController"
+            stylesheets="@../css/style.css">
+
+    <BorderPane AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+        <!-- 顶部工具栏 -->
+        <top>
+            <ToolBar>
+                <Button text="← 返回" onAction="#handleBack"/>
+                <Separator orientation="VERTICAL"/>
+                <Label fx:id="titleLabel" text="学习模式" style="-fx-font-weight: bold;"/>
+            </ToolBar>
+        </top>
+
+        <!-- 中心内容区 -->
+        <center>
+            <ScrollPane fitToWidth="true" style="-fx-background-color: #f4f4f4;">
+                <GridPane hgap="20" vgap="20" alignment="CENTER" style="-fx-padding: 30;">
+                    <columnConstraints>
+                        <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" minWidth="10.0" prefWidth="200.0"/>
+                        <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" minWidth="10.0" prefWidth="200.0"/>
+                    </columnConstraints>
+                    <rowConstraints>
+                        <RowConstraints minHeight="10.0" prefHeight="120.0" valignment="CENTER" vgrow="SOMETIMES"/>
+                        <RowConstraints minHeight="10.0" prefHeight="120.0" valignment="CENTER" vgrow="SOMETIMES"/>
+                        <RowConstraints minHeight="10.0" prefHeight="120.0" valignment="CENTER" vgrow="SOMETIMES"/>
+                        <RowConstraints minHeight="10.0" prefHeight="120.0" valignment="CENTER" vgrow="SOMETIMES"/>
+                        <RowConstraints minHeight="10.0" prefHeight="120.0" valignment="CENTER" vgrow="SOMETIMES"/>
+                    </rowConstraints>
+
+                    <!-- 卡片 -->
+                    <VBox fx:id="studyModeCard" onMouseClicked="#startStudyMode" styleClass="mode-card" alignment="CENTER" spacing="8" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                        <Label text="背题模式" styleClass="mode-card-title"/>
+                        <Label text="直接查看答案和解析" styleClass="mode-card-description"/>
+                    </VBox>
+
+                    <VBox fx:id="sequentialPracticeCard" onMouseClicked="#startSequentialPractice" styleClass="mode-card" alignment="CENTER" spacing="8" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                        <Label text="顺序练习" styleClass="mode-card-title"/>
+                        <Label text="按顺序进行练习" styleClass="mode-card-description"/>
+                    </VBox>
+
+                    <VBox fx:id="randomPracticeCard" onMouseClicked="#startRandomPractice" styleClass="mode-card" alignment="CENTER" spacing="8" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                        <Label text="随机练习" styleClass="mode-card-title"/>
+                        <Label text="随机打乱题目顺序" styleClass="mode-card-description"/>
+                    </VBox>
+
+                    <VBox fx:id="endlessModeCard" onMouseClicked="#startEndlessMode" styleClass="mode-card" alignment="CENTER" spacing="8" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                        <Label text="无尽模式" styleClass="mode-card-title"/>
+                        <Label text="题海无涯，回头是岸" styleClass="mode-card-description"/>
+                    </VBox>
+
+                    <VBox fx:id="wrongReviewCard" onMouseClicked="#startWrongReview" styleClass="mode-card" alignment="CENTER" spacing="8" GridPane.columnIndex="0" GridPane.rowIndex="2">
+                        <Label text="错题回顾" styleClass="mode-card-title"/>
+                        <Label text="巩固所有做错的题目" styleClass="mode-card-description"/>
+                    </VBox>
+
+                    <VBox fx:id="mockExamCard" onMouseClicked="#startMockExam" styleClass="mode-card" alignment="CENTER" spacing="8" GridPane.columnIndex="1" GridPane.rowIndex="2">
+                        <Label text="模拟考试" styleClass="mode-card-title"/>
+                        <Label text="模拟真实考试环境" styleClass="mode-card-description"/>
+                    </VBox>
+
+                    <VBox fx:id="wrongQuestionsCard" onMouseClicked="#startWrongQuestions" styleClass="mode-card" alignment="CENTER" spacing="8" GridPane.columnIndex="0" GridPane.rowIndex="3">
+                        <Label text="错题本" styleClass="mode-card-title"/>
+                        <Label text="查看、管理所有错题" styleClass="mode-card-description"/>
+                    </VBox>
+
+                    <VBox fx:id="searchCard" onMouseClicked="#startSearch" styleClass="mode-card" alignment="CENTER" spacing="8" GridPane.columnIndex="1" GridPane.rowIndex="3">
+                        <Label text="题库搜索" styleClass="mode-card-title"/>
+                        <Label text="根据关键词搜索题目" styleClass="mode-card-description"/>
+                    </VBox>
+
+                    <VBox fx:id="examHistoryCard" onMouseClicked="#startHistory" styleClass="mode-card" alignment="CENTER" spacing="8" GridPane.columnIndex="0" GridPane.rowIndex="4">
+                        <Label text="考试历史" styleClass="mode-card-title"/>
+                        <Label text="查看所有模考记录" styleClass="mode-card-description"/>
+                    </VBox>
+
+                    <VBox fx:id="wrongAnalysisCard" onMouseClicked="#startWrongAnalysis" styleClass="mode-card" alignment="CENTER" spacing="8" GridPane.columnIndex="1" GridPane.rowIndex="4">
+                        <Label text="错题分析" styleClass="mode-card-title"/>
+                        <Label text="分析错题分布和原因" styleClass="mode-card-description"/>
+                    </VBox>
+
+                </GridPane>
+            </ScrollPane>
+        </center>
+    </BorderPane>
+</AnchorPane>

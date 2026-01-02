@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.examapp.controller.MainController"
+            stylesheets="@../css/style.css">
+
+    <SplitPane fx:id="mainSplitPane" dividerPositions="0.3" AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0"
+               AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+
+        <!-- 左侧菜单栏 -->
+        <VBox styleClass="sidebar" spacing="20" minWidth="250">
+            <Label text="NJFU刷题助手" styleClass="sidebar-title"/>
+            <Button fx:id="importButton" text="导入题库" onAction="#openImport" maxWidth="Infinity" styleClass="sidebar-button"/>
+            <!-- 同步功能区 -->
+            <VBox spacing="5" style="-fx-padding: 0 0 10 0;">
+                <ToggleButton fx:id="syncToggleButton" text="开启同步服务" maxWidth="Infinity" styleClass="sidebar-button"/>
+                <Label fx:id="syncStatusLabel" text="服务已停止" style="-fx-font-size: 11px; -fx-text-fill: #888; -fx-padding: 0 10;" wrapText="true"/>
+            </VBox>
+            <Button fx:id="apiSettingsButton" text="API接口设置" onAction="#openAISettings" maxWidth="Infinity" styleClass="sidebar-button"/>
+            <Button fx:id="aboutButton" text="关于" onAction="#openAbout" maxWidth="Infinity" styleClass="sidebar-button"/>
+            <Region VBox.vgrow="ALWAYS"/>
+            <Hyperlink fx:id="questionBankLink" text="点击这里获取最新题库json文件" onAction="#openQuestionBankLink" styleClass="sidebar-link" wrapText="true"/>
+        </VBox>
+
+        <!-- 右侧内容区 -->
+        <BorderPane fx:id="contentPane">
+            <center>
+                <SplitPane fx:id="contentSplitPane" dividerPositions="1.0">
+                    <ScrollPane fitToWidth="true" styleClass="edge-to-edge">
+                        <VBox fx:id="subjectContainer" spacing="15" style="-fx-padding: 30;"/>
+                    </ScrollPane>
+                    <VBox fx:id="aiPanelContainer" visible="false" managed="false" minWidth="300" prefWidth="400"/>
+                </SplitPane>
+            </center>
+            <bottom>
+                <VBox alignment="CENTER" spacing="15" style="-fx-padding: 20; -fx-border-color: #e0e0e0 transparent transparent transparent; -fx-border-width: 1;">
+                    <Label fx:id="hitokotoText" text="一言加载中..." wrapText="true" styleClass="hitokoto-label" maxWidth="Infinity" onMouseClicked="#refreshHitokoto" style="-fx-cursor: hand;"/>
+                    <Button fx:id="studyModeButton" text="学习模式" onAction="#openStudyMode" styleClass="study-mode-button" maxWidth="Infinity"/>
+                </VBox>
+            </bottom>
+        </BorderPane>
+    </SplitPane>
+</AnchorPane>

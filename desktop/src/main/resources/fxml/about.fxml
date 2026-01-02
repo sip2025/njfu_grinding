@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.image.Image?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.examapp.controller.AboutController"
+            stylesheets="@../css/style.css">
+    
+    <!-- 顶部工具栏 -->
+    <top>
+        <HBox styleClass="toolbar" alignment="CENTER_LEFT" spacing="10">
+            <padding>
+                <Insets top="10" right="15" bottom="10" left="15"/>
+            </padding>
+            
+            <Button text="← 返回" onAction="#handleBack" styleClass="toolbar-button"/>
+            <Label text="关于" styleClass="toolbar-title" HBox.hgrow="ALWAYS"/>
+        </HBox>
+    </top>
+    
+    <!-- 主内容区 -->
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="scroll-pane">
+            <VBox spacing="24" styleClass="content-container">
+                <padding>
+                    <Insets top="24" right="24" bottom="24" left="24"/>
+                </padding>
+                
+                <!-- 关于卡片 -->
+                <VBox styleClass="card" spacing="16">
+                    <padding>
+                        <Insets top="16" right="16" bottom="16" left="16"/>
+                    </padding>
+                    
+                    <!-- 标题 -->
+                    <Label text="关于" styleClass="card-title"/>
+                    
+                    <!-- 作者信息 -->
+                    <VBox spacing="8">
+                        <Label text="作者: Keggin" styleClass="text-large"/>
+                        
+                        <HBox spacing="5" alignment="CENTER_LEFT">
+                            <Label text="有问题请联系:" styleClass="text-large"/>
+                            <Hyperlink text="admin@mail.keggin.me" 
+                                     onAction="#handleEmailLink"
+                                     styleClass="hyperlink-large"/>
+                        </HBox>
+                        
+                        <HBox spacing="5" alignment="CENTER_LEFT">
+                            <Label text="本项目的github仓库:" styleClass="text-large"/>
+                            <Hyperlink text="https://github.com/keggin-CHN/njfu_grinding" 
+                                     onAction="#handleGithubLink"
+                                     styleClass="hyperlink-large"
+                                     wrapText="true"/>
+                        </HBox>
+                    </VBox>
+                    
+                    <!-- 感谢支持 -->
+                    <VBox spacing="4" alignment="CENTER">
+                        <Label text="开发不易，感谢支持" styleClass="text-large" style="-fx-font-weight: normal;"/>
+                        <Label text="欢迎star，欢迎投喂" styleClass="text-gray"/>
+                    </VBox>
+                    
+                    <!-- 捐赠二维码 -->
+                    <VBox alignment="CENTER">
+                        <ImageView fx:id="donateImageView"
+                                 fitWidth="300"
+                                 fitHeight="300"
+                                 preserveRatio="true">
+                            <image>
+                                <Image url="@../images/donate_qr.jpg" backgroundLoading="true"/>
+                            </image>
+                        </ImageView>
+                    </VBox>
+                </VBox>
+            </VBox>
+        </ScrollPane>
+    </center>
+</BorderPane>

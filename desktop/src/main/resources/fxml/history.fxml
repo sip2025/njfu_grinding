@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<VBox xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.examapp.controller.HistoryController"
+      stylesheets="@../css/style.css" spacing="10" style="-fx-background-color: #f4f7f9;">
+
+    <ToolBar>
+        <Button fx:id="backButton" onAction="#handleBack"/>
+        <Separator orientation="VERTICAL"/>
+        <Label text="历史记录" style="-fx-font-weight: bold; -fx-font-size: 16px;"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="clearHistoryButton" onAction="#handleClearHistory"/>
+    </ToolBar>
+
+    <SplitPane dividerPositions="0.5" VBox.vgrow="ALWAYS">
+        <items>
+            <ListView fx:id="historyListView" style="-fx-background-color: transparent;"/>
+            
+            <VBox spacing="20" style="-fx-padding: 20; -fx-background-color: white;">
+                <Label text="成绩趋势与预测" style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #333;"/>
+                
+                <LineChart fx:id="scoreChart" title="历史成绩趋势" VBox.vgrow="ALWAYS" minHeight="250">
+                    <xAxis>
+                        <CategoryAxis label="模拟次数"/>
+                    </xAxis>
+                    <yAxis>
+                        <NumberAxis label="分数"/>
+                    </yAxis>
+                </LineChart>
+
+                <VBox alignment="CENTER" spacing="5" style="-fx-padding: 15px; -fx-background-color: #e3f2fd; -fx-background-radius: 8px;">
+                     <Label fx:id="predictionLabel" text="N/A" style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #1976d2;">
+                         <font>
+                             <Font name="Impact" size="28.0" />
+                         </font>
+                     </Label>
+                </VBox>
+            </VBox>
+        </items>
+    </SplitPane>
+
+</VBox>

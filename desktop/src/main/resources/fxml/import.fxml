@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.examapp.controller.ImportController"
+            stylesheets="@../css/style.css">
+
+    <VBox spacing="20" style="-fx-padding: 30;" AnchorPane.topAnchor="0.0" 
+          AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+        
+        <!-- Header -->
+        <HBox spacing="15" alignment="CENTER_LEFT">
+            <Button fx:id="cancelButton" text="返回" styleClass="secondary-button"/>
+            <Label text="导入题库" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #333;"/>
+            <Region HBox.hgrow="ALWAYS"/>
+        </HBox>
+        
+        <!-- File Selection -->
+        <VBox spacing="10" style="-fx-background-color: #f8f9fa; -fx-padding: 20; -fx-background-radius: 8;">
+            <Label text="1. 选择题库文件" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #555;"/>
+            <HBox spacing="15" alignment="CENTER_LEFT">
+                <Button fx:id="selectFileButton" text="选择文件" styleClass="primary-button"/>
+                <Label fx:id="fileNameLabel" text="未选择文件" style="-fx-text-fill: #666;"/>
+            </HBox>
+        </VBox>
+        
+        <!-- Subject Name -->
+        <VBox spacing="10" style="-fx-background-color: #f8f9fa; -fx-padding: 20; -fx-background-radius: 8;">
+            <Label text="2. 设置科目名称" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #555;"/>
+            <TextField fx:id="subjectNameField" promptText="请输入科目名称" 
+                       style="-fx-font-size: 14px; -fx-padding: 10;"/>
+        </VBox>
+        
+        <!-- AI Processing Options -->
+        <VBox spacing="10" style="-fx-background-color: #f8f9fa; -fx-padding: 20; -fx-background-radius: 8;">
+            <Label text="3. AI处理选项" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #555;"/>
+            <VBox spacing="10">
+                <RadioButton fx:id="noProcessingRadio" text="不进行任何处理" selected="true" style="-fx-font-size: 14px;">
+                    <toggleGroup>
+                        <ToggleGroup fx:id="aiProcessingGroup"/>
+                    </toggleGroup>
+                </RadioButton>
+                <VBox spacing="5">
+                    <RadioButton fx:id="generateAIAnalysisRadio" text="后台生成AI解析（原始题库仅包含答案）"
+                                toggleGroup="$aiProcessingGroup" style="-fx-font-size: 14px;"/>
+                    <HBox spacing="10" alignment="CENTER_LEFT" style="-fx-padding: 0 0 0 30;">
+                        <Label text="并发数:" style="-fx-text-fill: #666;"/>
+                        <TextField fx:id="concurrencyField" promptText="请输入并发数"
+                                  prefWidth="150" style="-fx-font-size: 14px;"/>
+                        <Label text="（建议值: 5-20）" style="-fx-text-fill: #999; -fx-font-size: 12px;"/>
+                    </HBox>
+                </VBox>
+            </VBox>
+        </VBox>
+        
+        <!-- Preview -->
+        <VBox spacing="10" style="-fx-background-color: #f8f9fa; -fx-padding: 20; -fx-background-radius: 8;" VBox.vgrow="ALWAYS">
+            <Label text="4. 题库预览" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #555;"/>
+            <TextArea fx:id="previewArea" editable="false" wrapText="true"
+                      style="-fx-font-size: 13px; -fx-font-family: monospace; -fx-background-color: white;"
+                      VBox.vgrow="ALWAYS"/>
+        </VBox>
+        
+        <!-- Progress and Status -->
+        <VBox spacing="10">
+            <ProgressBar fx:id="progressBar" prefWidth="Infinity" style="-fx-accent: #4CAF50;"/>
+            <Label fx:id="statusLabel" text="" style="-fx-text-fill: #666; -fx-font-size: 14px;"/>
+        </VBox>
+        
+        <!-- Import Button -->
+        <HBox alignment="CENTER_RIGHT">
+            <Button fx:id="importButton" text="开始导入" styleClass="success-button" 
+                    style="-fx-font-size: 16px; -fx-padding: 12 24;"/>
+        </HBox>
+        
+    </VBox>
+    
+</AnchorPane>

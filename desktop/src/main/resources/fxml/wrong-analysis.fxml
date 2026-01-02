@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.examapp.controller.WrongAnalysisController"
+            stylesheets="@../css/style.css"
+            prefHeight="800.0" prefWidth="1200.0">
+    
+    <top>
+        <VBox styleClass="header">
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <Button fx:id="backButton" text="返回" onAction="#handleBack"/>
+                <Label fx:id="titleLabel" text="错题分析" styleClass="title"/>
+            </HBox>
+            <padding>
+                <Insets top="10" right="15" bottom="10" left="15"/>
+            </padding>
+        </VBox>
+    </top>
+    
+    <center>
+        <ScrollPane fitToWidth="true" fitToHeight="true" style="-fx-background-color: transparent;">
+            <VBox spacing="15" style="-fx-padding: 20 20 5 20;" VBox.vgrow="ALWAYS">
+                <Label text="错题统计（按错误次数排序）" style="-fx-font-size: 1.2em; -fx-font-weight: bold; -fx-text-fill: #555;"/>
+                <ListView fx:id="wrongQuestionsListView" VBox.vgrow="ALWAYS" style="-fx-background-color: transparent;"/>
+            </VBox>
+        </ScrollPane>
+    </center>
+    
+</BorderPane>

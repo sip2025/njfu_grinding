@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.examapp.controller.MockExamController"
+            stylesheets="@../css/style.css">
+    
+    <top>
+        <VBox>
+            <ToolBar>
+                <Button fx:id="backButton" text="← 返回" onAction="#handleBack" />
+                <Separator orientation="VERTICAL" />
+                <Label fx:id="subjectNameLabel" text="模拟考试" style="-fx-font-weight: bold;" />
+                <Region HBox.hgrow="ALWAYS" />
+                <Label fx:id="timerLabel" text="剩余时间: 90:00" style="-fx-font-size: 14px; -fx-text-fill: #F44336;" />
+            </ToolBar>
+        </VBox>
+    </top>
+    
+    <center>
+        <SplitPane dividerPositions="0.3">
+            <!-- 左侧答题卡 -->
+            <VBox spacing="10" style="-fx-padding: 10; -fx-background-color: #fafafa;" minWidth="250" prefWidth="300">
+                <Label text="答题卡" style="-fx-font-size: 14px; -fx-font-weight: bold;" />
+                <Label fx:id="progressLabel" text="已答: 0/80" style="-fx-font-size: 12px;" />
+                <fx:include fx:id="questionNavPanel" source="question-nav-panel.fxml" VBox.vgrow="ALWAYS"/>
+                <Button text="交卷" onAction="#handleSubmitExam"
+                        style="-fx-background-color: #F44336; -fx-text-fill: white; -fx-font-weight: bold;"
+                        prefWidth="Infinity" prefHeight="40" />
+            </VBox>
+            
+            <!-- 右侧题目区域 -->
+            <ScrollPane fitToWidth="true" fitToHeight="true">
+                    <VBox spacing="20" style="-fx-padding: 20;">
+                        <HBox alignment="CENTER_LEFT" spacing="10">
+                            <Label fx:id="questionNumberLabel" text="第 1 题"
+                                   style="-fx-font-size: 18px; -fx-font-weight: bold;" />
+                            <Label fx:id="questionTypeLabel" text="[单选题]"
+                                   style="-fx-font-size: 14px; -fx-text-fill: gray;" />
+                        </HBox>
+
+                        <VBox styleClass="card" spacing="10">
+                            <Label text="题目:" style="-fx-font-weight: bold;" />
+                            <Label fx:id="questionTextLabel" text="题目内容"
+                                   wrapText="true" style="-fx-font-size: 16px;" />
+                        </VBox>
+
+                        <VBox fx:id="optionsContainer" spacing="10">
+                            <Label text="选项:" style="-fx-font-weight: bold;" />
+                        </VBox>
+
+                        <Button fx:id="submitButton" text="提交答案" onAction="#handleSubmitAnswer"
+                                visible="false" managed="false"
+                                style="-fx-font-size: 14px; -fx-padding: 10 30;" />
+                    </VBox>
+                </ScrollPane>
+        </SplitPane>
+    </center>
+    
+    <bottom>
+        <HBox spacing="10" alignment="CENTER" style="-fx-padding: 15; -fx-background-color: #f0f0f0;">
+            <Button fx:id="previousButton" text="← 上一题" onAction="#handlePrevious"
+                    prefWidth="120" prefHeight="40" />
+            <Region HBox.hgrow="ALWAYS" />
+            <ToggleButton fx:id="favoriteButton" text="★ 星标" styleClass="star-toggle-button"
+                          prefWidth="120" prefHeight="40" onAction="#handleFavorite" />
+            <Button text="提交试卷" onAction="#handleSubmitExam"
+                    style="-fx-background-color: #F44336; -fx-text-fill: white; -fx-font-weight: bold;"
+                    prefWidth="120" prefHeight="40" />
+            <Button fx:id="nextButton" text="下一题 →" onAction="#handleNext"
+                    prefWidth="120" prefHeight="40" />
+        </HBox>
+    </bottom>
+</BorderPane>

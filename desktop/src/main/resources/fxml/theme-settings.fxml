@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.examapp.controller.ThemeSettingsController"
+            stylesheets="@../css/style.css">
+
+    <VBox spacing="20" style="-fx-padding: 30;" AnchorPane.topAnchor="0.0" 
+          AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+        
+        <!-- Header -->
+        <HBox spacing="15" alignment="CENTER_LEFT">
+            <Button text="返回" onAction="#handleBack" styleClass="secondary-button"/>
+            <Label text="主题和显示设置" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #333;"/>
+            <Region HBox.hgrow="ALWAYS"/>
+        </HBox>
+        
+        <!-- Theme Selection -->
+        <VBox spacing="10" style="-fx-background-color: #f8f9fa; -fx-padding: 20; -fx-background-radius: 8;">
+            <Label text="主题选择" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #555;"/>
+            <ComboBox fx:id="themeComboBox" prefWidth="300" style="-fx-font-size: 14px;"/>
+            <Label text="选择您喜欢的界面主题风格" style="-fx-text-fill: #666; -fx-font-size: 12px;"/>
+        </VBox>
+        
+        <!-- Font Size -->
+        <VBox spacing="10" style="-fx-background-color: #f8f9fa; -fx-padding: 20; -fx-background-radius: 8;">
+            <Label fx:id="fontSizeLabel" text="字体大小: 14px" 
+                   style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #555;"/>
+            <Slider fx:id="fontSizeSlider" prefWidth="400" style="-fx-padding: 10 0;"/>
+            <Label text="调整界面文字大小以获得更好的阅读体验" style="-fx-text-fill: #666; -fx-font-size: 12px;"/>
+        </VBox>
+        
+        <!-- Other Settings -->
+        <VBox spacing="15" style="-fx-background-color: #f8f9fa; -fx-padding: 20; -fx-background-radius: 8;">
+            <Label text="其他设置" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #555;"/>
+            
+            <CheckBox fx:id="autoSaveCheckBox" text="自动保存学习进度" 
+                      style="-fx-font-size: 14px; -fx-padding: 5;"/>
+            <Label text="自动保存您的答题进度和学习记录" 
+                   style="-fx-text-fill: #666; -fx-font-size: 12px; -fx-padding: 0 0 0 25;"/>
+            
+            <CheckBox fx:id="showExplanationCheckBox" text="显示题目解析" 
+                      style="-fx-font-size: 14px; -fx-padding: 5;"/>
+            <Label text="在答题后自动显示题目解析和答案" 
+                   style="-fx-text-fill: #666; -fx-font-size: 12px; -fx-padding: 0 0 0 25;"/>
+        </VBox>
+        
+        <!-- Status Label -->
+        <Label fx:id="statusLabel" text="" style="-fx-font-size: 14px;"/>
+        
+        <!-- Action Buttons -->
+        <HBox spacing="15" alignment="CENTER_RIGHT">
+            <Button fx:id="previewButton" text="预览效果" styleClass="secondary-button"/>
+            <Button fx:id="resetButton" text="重置设置" styleClass="secondary-button"/>
+            <Button fx:id="saveButton" text="保存设置" styleClass="success-button" 
+                    style="-fx-font-size: 16px; -fx-padding: 12 24;"/>
+        </HBox>
+        
+    </VBox>
+    
+</AnchorPane>

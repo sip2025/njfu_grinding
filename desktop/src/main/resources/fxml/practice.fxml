@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.examapp.controller.PracticeController"
+            stylesheets="@../css/style.css"
+            fx:id="rootPane">
+
+    <BorderPane AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+        <!-- 顶部工具栏 -->
+        <top>
+            <VBox>
+                <ToolBar>
+                    <Button text="← 返回" onAction="#handleBack"/>
+                    <Separator orientation="VERTICAL"/>
+                    <Label fx:id="subjectNameLabel" text="题库名称" style="-fx-font-weight: bold;"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label fx:id="progressLabel" text="进度: 0/0"/>
+                </ToolBar>
+            </VBox>
+        </top>
+
+        <!-- 中心内容区 -->
+        <center>
+            <SplitPane fx:id="mainSplitPane" dividerPositions="0.25, 1.0">
+                <!-- 左侧导航面板 -->
+                <VBox spacing="10" style="-fx-padding: 10; -fx-background-color: #fafafa;" minWidth="200" prefWidth="250">
+                    <Label text="题目导航" style="-fx-font-size: 14px; -fx-font-weight: bold;"/>
+                    <fx:include fx:id="questionNavPanel" source="question-nav-panel.fxml" VBox.vgrow="ALWAYS"/>
+                </VBox>
+                
+                <!-- 中间题目区域 -->
+                <ScrollPane fitToWidth="true" fitToHeight="true">
+                        <VBox fx:id="questionContentBox" spacing="20" style="-fx-padding: 20;">
+                            <!-- 题目信息 -->
+                            <HBox alignment="CENTER_LEFT" spacing="10">
+                                <Label fx:id="questionNumberLabel" text="第 1 题"
+                                       style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+                                <Label fx:id="questionTypeLabel" text="[单选题]"
+                                       style="-fx-font-size: 14px; -fx-text-fill: gray;"/>
+                            </HBox>
+
+                            <!-- 题目文本 -->
+                            <VBox styleClass="card" spacing="10">
+                                <Label text="题目:" style="-fx-font-weight: bold;"/>
+                                <Label fx:id="questionTextLabel" text="题目内容"
+                                       wrapText="true" style="-fx-font-size: 16px;"/>
+                            </VBox>
+
+                            <!-- 选项区域 -->
+                            <VBox fx:id="optionsContainer" spacing="10">
+                                <Label text="选项:" style="-fx-font-weight: bold;"/>
+                                <!-- 选项将动态添加 -->
+                            </VBox>
+
+                            <!-- 多选题提交按钮 -->
+                            <Button fx:id="submitButton" text="提交答案" onAction="#handleSubmit"
+                                    visible="false" managed="false"
+                                    style="-fx-font-size: 14px; -fx-padding: 10 30;"/>
+
+                            <!-- 反馈区域 -->
+                            <VBox fx:id="feedbackPane" spacing="10" visible="false" managed="false"
+                                  style="-fx-background-color: #f5f5f5; -fx-padding: 15; -fx-background-radius: 4;">
+                                <HBox alignment="CENTER_LEFT" spacing="10">
+                                    <Label fx:id="feedbackLabel" text="✓ 正确!"
+                                           style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                                </HBox>
+                                <VBox fx:id="explanationPane" spacing="5" visible="false" managed="false">
+                                    <Label text="解析:" style="-fx-font-weight: bold;"/>
+                                    <Label fx:id="explanationLabel" text="" wrapText="true"/>
+                                </VBox>
+                            </VBox>
+
+                            <!-- 收藏按钮 -->
+                            <HBox spacing="10">
+                                <Button fx:id="favoriteButton" text="☆ 星标" onAction="#handleFavorite"/>
+                            </HBox>
+                        </VBox>
+                    </ScrollPane>
+                
+                <!-- 右侧AI答疑面板（默认隐藏） -->
+                <VBox fx:id="aiPanelContainer" visible="false" managed="false" minWidth="400" maxWidth="500">
+                    <fx:include fx:id="aiPanel" source="ai-panel.fxml"/>
+                </VBox>
+            </SplitPane>
+        </center>
+
+        <!-- 底部导航按钮 -->
+        <bottom>
+            <HBox spacing="10" alignment="CENTER" style="-fx-padding: 15; -fx-background-color: #f0f0f0;">
+                <Button fx:id="previousButton" text="← 上一题" onAction="#handlePrevious"
+                        prefWidth="120" prefHeight="40"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button fx:id="aiAssistButton" text="AI答疑" onAction="#handleAIAssist"
+                        prefWidth="120" prefHeight="40"/>
+                <Button fx:id="nextButton" text="下一题 →" onAction="#handleNext"
+                        prefWidth="120" prefHeight="40"/>
+            </HBox>
+        </bottom>
+    </BorderPane>
+
+</AnchorPane>

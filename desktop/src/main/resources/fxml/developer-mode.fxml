@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.examapp.controller.DeveloperModeController"
+            stylesheets="@../css/style.css">
+
+    <VBox spacing="20" style="-fx-padding: 30;" AnchorPane.topAnchor="0.0" 
+          AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+        
+        <!-- Header -->
+        <HBox spacing="15" alignment="CENTER_LEFT">
+            <Button text="返回" onAction="#handleBack" styleClass="secondary-button"/>
+            <Label text="开发者模式" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #333;"/>
+            <Region HBox.hgrow="ALWAYS"/>
+        </HBox>
+        
+        <!-- Developer Mode Toggle -->
+        <VBox spacing="10" style="-fx-background-color: #f8f9fa; -fx-padding: 20; -fx-background-radius: 8;">
+            <Label text="开发者设置" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #555;"/>
+            <CheckBox fx:id="developerModeCheckBox" text="启用开发者模式" 
+                      style="-fx-font-size: 14px; -fx-padding: 5;"/>
+            <Label text="启用后将显示调试信息并允许高级功能" 
+                   style="-fx-text-fill: #666; -fx-font-size: 12px; -fx-padding: 0 0 0 25;"/>
+        </VBox>
+        
+        <!-- Custom CSS -->
+        <VBox spacing="10" style="-fx-background-color: #f8f9fa; -fx-padding: 20; -fx-background-radius: 8;" VBox.vgrow="ALWAYS">
+            <Label text="自定义CSS" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #555;"/>
+            <TextArea fx:id="customCssArea" promptText="输入自定义CSS代码..." wrapText="true" 
+                      style="-fx-font-size: 13px; -fx-font-family: monospace; -fx-background-color: white;" 
+                      VBox.vgrow="ALWAYS"/>
+            <Label text="自定义CSS将在保存后立即应用到当前界面" 
+                   style="-fx-text-fill: #666; -fx-font-size: 12px;"/>
+        </VBox>
+        
+        <!-- Developer Tools -->
+        <VBox spacing="10" style="-fx-background-color: #f8f9fa; -fx-padding: 20; -fx-background-radius: 8;">
+            <Label text="开发工具" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #555;"/>
+            
+            <HBox spacing="15" alignment="CENTER_LEFT">
+                <Button fx:id="testApiButton" text="测试API连接" styleClass="primary-button"/>
+                <Button fx:id="clearCacheButton" text="清除缓存" styleClass="secondary-button"/>
+                <Button fx:id="exportDataButton" text="导出数据" styleClass="secondary-button"/>
+            </HBox>
+            
+            <Label text="这些工具用于调试和测试应用程序功能" 
+                   style="-fx-text-fill: #666; -fx-font-size: 12px;"/>
+        </VBox>
+        
+        <!-- Status Label -->
+        <Label fx:id="statusLabel" text="" style="-fx-font-size: 14px;"/>
+        
+        <!-- Action Buttons -->
+        <HBox spacing="15" alignment="CENTER_RIGHT">
+            <Button fx:id="resetButton" text="重置设置" styleClass="secondary-button"/>
+            <Button fx:id="saveButton" text="保存设置" styleClass="success-button" 
+                    style="-fx-font-size: 16px; -fx-padding: 12 24;"/>
+        </HBox>
+        
+    </VBox>
+    
+</AnchorPane>

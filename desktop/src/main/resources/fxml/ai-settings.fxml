@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.examapp.controller.AISettingsController"
+      spacing="0"
+      styleClass="root">
+
+    <!-- 标题栏 -->
+    <HBox styleClass="toolbar" alignment="CENTER_LEFT" spacing="10">
+        <padding>
+            <Insets top="15" right="20" bottom="15" left="20"/>
+        </padding>
+        <Button fx:id="backButton" text="← 返回" styleClass="back-button" onAction="#handleBack"/>
+        <Label text="AI助手设置" styleClass="toolbar-title">
+            <font>
+                <Font name="System Bold" size="18"/>
+            </font>
+        </Label>
+    </HBox>
+
+    <!-- 内容区域 -->
+    <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="content-scroll">
+        <VBox spacing="20" styleClass="content-container">
+            <padding>
+                <Insets top="20" right="20" bottom="20" left="20"/>
+            </padding>
+
+            <!-- Base URL设置 -->
+            <VBox spacing="8" styleClass="setting-section">
+                <Label text="Base URL" styleClass="setting-label">
+                    <font>
+                        <Font name="System Bold" size="14"/>
+                    </font>
+                </Label>
+                <TextField fx:id="baseUrlField" promptText="例如: https://api.openai.com" styleClass="setting-input"/>
+                <Label fx:id="fullPathLabel" text="完整API路径: " styleClass="hint-label" wrapText="true"/>
+                <Label text="提示：以#结尾表示使用自定义完整路径" styleClass="hint-label"/>
+            </VBox>
+
+            <!-- API Key设置 -->
+            <VBox spacing="8" styleClass="setting-section">
+                <Label text="API Key" styleClass="setting-label">
+                    <font>
+                        <Font name="System Bold" size="14"/>
+                    </font>
+                </Label>
+                <PasswordField fx:id="apiKeyField" promptText="输入您的API密钥" styleClass="setting-input"/>
+            </VBox>
+
+            <!-- 模型选择 -->
+            <VBox spacing="8" styleClass="setting-section">
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="模型" styleClass="setting-label">
+                        <font>
+                            <Font name="System Bold" size="14"/>
+                        </font>
+                    </Label>
+                    <Button fx:id="refreshModelsButton" text="刷新模型列表" styleClass="secondary-button" onAction="#handleRefreshModels"/>
+                </HBox>
+                <ComboBox fx:id="modelComboBox" promptText="选择模型" maxWidth="Infinity" styleClass="setting-combo"/>
+            </VBox>
+
+            <!-- Temperature设置 -->
+            <VBox spacing="8" styleClass="setting-section">
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="Temperature" styleClass="setting-label">
+                        <font>
+                            <Font name="System Bold" size="14"/>
+                        </font>
+                    </Label>
+                    <Label fx:id="temperatureValueLabel" text="0.60" styleClass="value-label"/>
+                </HBox>
+                <Slider fx:id="temperatureSlider" min="0" max="2" value="0.6" showTickLabels="false" showTickMarks="false" styleClass="setting-slider"/>
+                <Label text="控制输出的随机性，值越高越随机" styleClass="hint-label"/>
+            </VBox>
+
+            <!-- Top-P设置 -->
+            <VBox spacing="8" styleClass="setting-section">
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="Top-P" styleClass="setting-label">
+                        <font>
+                            <Font name="System Bold" size="14"/>
+                        </font>
+                    </Label>
+                    <Label fx:id="topPValueLabel" text="1.00" styleClass="value-label"/>
+                </HBox>
+                <Slider fx:id="topPSlider" min="0" max="1" value="1.0" showTickLabels="false" showTickMarks="false" styleClass="setting-slider"/>
+                <Label text="控制输出的多样性" styleClass="hint-label"/>
+            </VBox>
+
+            <!-- Max Retry设置 -->
+            <VBox spacing="8" styleClass="setting-section">
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="最大重试次数" styleClass="setting-label">
+                        <font>
+                            <Font name="System Bold" size="14"/>
+                        </font>
+                    </Label>
+                    <Label fx:id="maxRetryValueLabel" text="3" styleClass="value-label"/>
+                </HBox>
+                <Slider fx:id="maxRetrySlider" min="1" max="10" value="3" showTickLabels="false" showTickMarks="false" styleClass="setting-slider" snapToTicks="true" majorTickUnit="1" minorTickCount="0"/>
+                <Label text="API请求失败时的重试次数" styleClass="hint-label"/>
+            </VBox>
+
+            <!-- 操作按钮 -->
+            <HBox spacing="15" alignment="CENTER" styleClass="button-container">
+                <padding>
+                    <Insets top="20" right="0" bottom="10" left="0"/>
+                </padding>
+                <Button fx:id="resetButton" text="恢复默认值" styleClass="secondary-button" onAction="#handleReset" prefWidth="150"/>
+                <Button fx:id="saveButton" text="保存设置" styleClass="primary-button" onAction="#handleSave" prefWidth="150"/>
+            </HBox>
+
+        </VBox>
+    </ScrollPane>
+
+</VBox>

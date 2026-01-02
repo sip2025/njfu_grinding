@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.ToolBar?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.examapp.controller.ResultController" stylesheets="@../css/style.css">
+    <top>
+        <ToolBar>
+            <Button fx:id="backButton" onAction="#handleBack" text="← 返回主菜单" />
+            <Label fx:id="subjectNameLabel" style="-fx-font-weight: bold; -fx-padding: 0 0 0 10;" text="考试结果" />
+        </ToolBar>
+    </top>
+    <center>
+        <VBox alignment="TOP_CENTER" spacing="15" style="-fx-padding: 20;">
+            <Label fx:id="scoreLabel" style="-fx-font-size: 48px; -fx-font-weight: bold;" text="85 / 100" />
+            <Label fx:id="accuracyLabel" style="-fx-font-size: 18px;" text="正确率: 85.0%" />
+            <Label fx:id="detailsLabel" style="-fx-font-size: 14px; -fx-text-fill: grey;" text="答对: 85 | 答错: 15 | 未答: 0" />
+            <HBox spacing="20" alignment="CENTER" style="-fx-padding: 20 0 0 0;">
+                <Button fx:id="reviewAllButton" onAction="#handleReviewAll" text="回顾全卷" style="-fx-font-size: 16px; -fx-pref-width: 150px;" />
+                <Button fx:id="reviewWrongButton" onAction="#handleReviewWrong" text="仅看错题" style="-fx-font-size: 16px; -fx-pref-width: 150px;" />
+            </HBox>
+        </VBox>
+    </center>
+</BorderPane>
