@@ -37,9 +37,11 @@ import com.examapp.model.Question;
 import com.examapp.model.Subject;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class MockExamActivity extends BaseActivity implements GestureDetector.OnGestureListener {
     private QuestionManager questionManager;
@@ -53,6 +55,8 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
     private GestureDetectorCompat gestureDetector;
     private boolean isBindingOptions;
     private boolean isRestoredFromCache = false;
+    private boolean isExamSubmitted = false; // 标记考试是否已交卷
+    private Set<Integer> manuallyStarredInThisExam = new HashSet<>(); // 记录本次考试中手动点击过星标的题目索引
 
     private DrawerLayout drawerLayout;
     private RecyclerView questionNavRecyclerView;
@@ -410,8 +414,18 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
         return items;
     }
 
+    /**
+     * 更新星标按钮的显示文本
+     * 为了保证模拟考试的真实性，默认始终显示"星标"
+     * 只有当用户在本次考试中手动点击过星标按钮后，才显示"取消星标"
+     */
     private void updateFavoriteButtonLabel(Question question) {
-        favoriteButton.setText(question.isWrong() ? R.string.unstar : R.string.star);
+        // 只有本次考试中手动标记过的题目才显示"取消星标"
+        if (manuallyStarredInThisExam.contains(currentPosition)) {
+            favoriteButton.setText(R.string.unstar);
+        } else {
+            favoriteButton.setText(R.string.star);
+        }
     }
 
     private void updateAnsweredProgress() {
@@ -482,6 +496,12 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
         updateQuestionNavigation();
     }
 
+    /**
+     * 切换星标状态
+     * 在模拟考试中，星标按钮的行为：
+     * - 默认显示"星标"，点击后将题目加入错题本，并显示"取消星标"
+     * - 如果已显示"取消星标"，点击后将题目从错题本移除，恢复显示"星标"
+     */
     private void toggleStar() {
         if (examQuestions == null || examQuestions.isEmpty()) {
             return;
@@ -494,19 +514,31 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
         Question originalQuestion = findOriginalQuestion(question);
         if (originalQuestion == null) return;
         
-        boolean isCurrentlyWrong = originalQuestion.isWrong();
+        // 检查是否在本次考试中已手动标记过
+        boolean wasManuallyStarred = manuallyStarredInThisExam.contains(currentPosition);
         
-        if (isCurrentlyWrong) {
-            questionManager.removeWrongQuestion(subjectId, originalIndex);
+        if (wasManuallyStarred) {
+            // 已经手动标记过，现在要取消
+            manuallyStarredInThisExam.remove(currentPosition);
+            // 如果原本不在错题本中，则从错题本移除
+            if (!question.isWrong()) {
+                // 这道题是本次考试中添加的，需要移除
+                questionManager.removeWrongQuestion(subjectId, originalIndex);
+                originalQuestion.setWrong(false);
+            }
             Toast.makeText(this, R.string.star_removed, Toast.LENGTH_SHORT).show();
         } else {
-            questionManager.addWrongQuestion(subjectId, originalIndex);
+            // 没有手动标记过，现在要添加
+            manuallyStarredInThisExam.add(currentPosition);
+            // 无论原本是否在错题本中，都确保添加到错题本
+            if (!originalQuestion.isWrong()) {
+                questionManager.addWrongQuestion(subjectId, originalIndex);
+                originalQuestion.setWrong(true);
+                question.setWrong(true);
+            }
             Toast.makeText(this, R.string.star_added, Toast.LENGTH_SHORT).show();
         }
         
-        // 更新原始题目和当前显示题目的状态
-        originalQuestion.setWrong(!isCurrentlyWrong);
-        question.setWrong(!isCurrentlyWrong);
         updateFavoriteButtonLabel(question);
     }
 
@@ -595,6 +627,9 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
         entry.setQuestionRecords(records);
         questionManager.addExamHistoryEntry(entry);
         
+        // 标记考试已交卷，防止 onPause 重新保存缓存
+        isExamSubmitted = true;
+        
         // 交卷后清除缓存
         cacheManager.clearCache();
 
@@ -656,8 +691,13 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
     
     /**
      * 保存考试状态到缓存
+     * 只有在考试未交卷时才保存
      */
     private void saveExamState() {
+        // 如果已经交卷，不再保存缓存
+        if (isExamSubmitted) {
+            return;
+        }
         if (examQuestions != null && !examQuestions.isEmpty()) {
             captureCurrentAnswer();
             cacheManager.saveExamState(subjectId, subjectName, examQuestions, answers, currentPosition);
