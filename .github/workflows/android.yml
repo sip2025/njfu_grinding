@@ -29,6 +29,20 @@ jobs:
       with:
         gradle-version: '8.6'
 
+    - name: Fix Gradle Wrapper
+      run: |
+        mkdir -p gradle/wrapper
+        echo "distributionBase=GRADLE_USER_HOME" > gradle/wrapper/gradle-wrapper.properties
+        echo "distributionPath=wrapper/dists" >> gradle/wrapper/gradle-wrapper.properties
+        echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.6-bin.zip" >> gradle/wrapper/gradle-wrapper.properties
+        echo "zipStoreBase=GRADLE_USER_HOME" >> gradle/wrapper/gradle-wrapper.properties
+        echo "zipStorePath=wrapper/dists" >> gradle/wrapper/gradle-wrapper.properties
+        
+        # Download wrapper jar if missing
+        if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
+            curl -L https://raw.githubusercontent.com/gradle/gradle/v8.6.0/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
+        fi
+
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
