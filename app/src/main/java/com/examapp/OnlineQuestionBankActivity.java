@@ -1,7 +1,7 @@
 package com.examapp;
-
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.ColorStateList;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -16,18 +16,16 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
 import androidx.core.widget.NestedScrollView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -39,20 +37,23 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
+import java.util.concurrent.RejectedExecutionException;
 import io.noties.markwon.Markwon;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-
 public class OnlineQuestionBankActivity extends BaseActivity {
-
-    private static final String GITHUB_API_BASE = "https://api.github.com/repos/keggin-CHN/njfu_grinding/contents/";
+    // 使用自建代理服务，统一转发 GitHub API 与 raw 请求
+    private static final String PROXY_BASE = "http://s9.serv00.com:16974";
+    private static final String[] GITHUB_MIRRORS = {
+        PROXY_BASE + "/raw/"
+    };
+    private static final String GITHUB_API_BASE = PROXY_BASE + "/api/contents/";
     private static final String BASE_PATH = "题库收集";
+    private int currentMirrorIndex = 0;
     private static final String PREFS_NAME = "online_question_bank_prefs";
     private static final String KEY_IMPORTED_FILES = "imported_files";
     private static final String EXTRA_REPO_PATH = "EXTRA_REPO_PATH";
-
     private ProgressBar progressBar;
     private LinearLayout errorLayout;
     private TextView errorText;
@@ -65,31 +66,24 @@ public class OnlineQuestionBankActivity extends BaseActivity {
     private TextView currentPathText;
     private Button upButton;
     private NestedScrollView contentScrollView;
-
     private final OkHttpClient client = new OkHttpClient();
     private final Gson gson = new Gson();
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
-
     private ActivityResultLauncher<Intent> importLauncher;
     private SharedPreferences preferences;
-
     private String currentPath = BASE_PATH;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_online_question_bank);
-
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setTitle("在线题库");
         }
-
         preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-
         progressBar = findViewById(R.id.progress_bar);
         errorLayout = findViewById(R.id.error_layout);
         errorText = findViewById(R.id.error_text);
@@ -101,31 +95,26 @@ public class OnlineQuestionBankActivity extends BaseActivity {
         currentPathText = findViewById(R.id.current_path_text);
         upButton = findViewById(R.id.up_button);
         contentScrollView = findViewById(R.id.content_scroll_view);
-
         fileRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         fileAdapter = new FileAdapter();
         fileRecyclerView.setAdapter(fileAdapter);
-
         retryButton.setOnClickListener(v -> loadData());
         upButton.setOnClickListener(v -> navigateUp());
-
         importLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                        String repoPath = result.getData().getStringExtra(EXTRA_REPO_PATH);
-                        if (repoPath != null) {
-                            updateImportedState(repoPath, true);
-                            fileAdapter.markImported(repoPath);
-                            Toast.makeText(this, "导入成功", Toast.LENGTH_SHORT).show();
-                        }
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    String repoPath = result.getData().getStringExtra(EXTRA_REPO_PATH);
+                    if (repoPath != null) {
+                        updateImportedState(repoPath, true);
+                        fileAdapter.markImported(repoPath);
+                        Toast.makeText(this, "导入成功", Toast.LENGTH_SHORT).show();
                     }
                 }
+            }
         );
-
         loadData();
     }
-
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
@@ -134,94 +123,92 @@ public class OnlineQuestionBankActivity extends BaseActivity {
         }
         return super.onOptionsItemSelected(item);
     }
-
     private void loadData() {
         loadDirectory(currentPath);
     }
-
     private void loadDirectory(String path) {
+        if (executorService.isShutdown()) return;
         currentPath = path;
         updatePathHeader();
-
         progressBar.setVisibility(View.VISIBLE);
         errorLayout.setVisibility(View.GONE);
         contentScrollView.setVisibility(View.GONE);
         readmeContainer.setVisibility(View.GONE);
         readmeTitle.setVisibility(View.GONE);
-
-        executorService.execute(() -> {
-            try {
-                Request request = new Request.Builder()
+        try {
+            executorService.execute(() -> {
+                try {
+                    Request request = new Request.Builder()
                         .url(buildApiUrl(path))
                         .build();
-
-                try (Response response = client.newCall(request).execute()) {
-                    if (!response.isSuccessful()) {
-                        throw new IOException("Unexpected code " + response);
-                    }
-
-                    String jsonData = response.body().string();
-                    List<GitHubFile> files = gson.fromJson(jsonData, new TypeToken<List<GitHubFile>>(){}.getType());
-
-                    List<GitHubFile> directories = new ArrayList<>();
-                    List<GitHubFile> jsonFiles = new ArrayList<>();
-                    String readmeUrl = null;
-                    Set<String> importedFiles = getImportedFiles();
-
-                    if (files != null) {
-                        for (GitHubFile file : files) {
-                            if ("dir".equals(file.type)) {
-                                directories.add(file);
-                            } else if ("file".equals(file.type)) {
-                                if ("README.md".equalsIgnoreCase(file.name)) {
-                                    readmeUrl = file.download_url;
-                                } else if (file.name != null && file.name.toLowerCase(Locale.ROOT).endsWith(".json")) {
-                                    File cached = new File(getCacheDir(), file.name);
-                                    if (cached.exists()) {
-                                        file.localPath = cached.getAbsolutePath();
+                    try (Response response = client.newCall(request).execute()) {
+                        if (!response.isSuccessful()) {
+                            throw new IOException("Unexpected code " + response);
+                        }
+                        String jsonData = response.body().string();
+                        List<GitHubFile> files = gson.fromJson(jsonData, new TypeToken<List<GitHubFile>>(){}.getType());
+                        List<GitHubFile> directories = new ArrayList<>();
+                        List<GitHubFile> jsonFiles = new ArrayList<>();
+                        String readmeUrl = null;
+                        Set<String> importedFiles = getImportedFiles();
+                        if (files != null) {
+                            for (GitHubFile file : files) {
+                                if ("dir".equals(file.type)) {
+                                    directories.add(file);
+                                } else if ("file".equals(file.type)) {
+                                    if (file.path != null) {
+                                        file.download_url = buildRawUrl(GITHUB_MIRRORS[0], file.path);
                                     }
-                                    file.isImported = importedFiles.contains(file.path);
-                                    jsonFiles.add(file);
+                                    if ("README.md".equalsIgnoreCase(file.name)) {
+                                        readmeUrl = file.download_url;
+                                    } else if (file.name != null && file.name.toLowerCase(Locale.ROOT).endsWith(".json")) {
+                                        File cached = new File(getCacheDir(), file.name);
+                                        if (cached.exists()) {
+                                            file.localPath = cached.getAbsolutePath();
+                                        }
+                                        file.isImported = importedFiles.contains(file.path);
+                                        jsonFiles.add(file);
+                                    }
                                 }
                             }
                         }
+                        List<GitHubFile> displayFiles = new ArrayList<>();
+                        displayFiles.addAll(directories);
+                        displayFiles.addAll(jsonFiles);
+                        String finalReadmeUrl = readmeUrl;
+                        mainHandler.post(() -> {
+                            if (isFinishing() || isDestroyed()) return;
+                            progressBar.setVisibility(View.GONE);
+                            contentScrollView.setVisibility(View.VISIBLE);
+                            fileRecyclerView.setVisibility(View.VISIBLE);
+                            fileAdapter.setFiles(displayFiles);
+                            if (finalReadmeUrl != null) {
+                                loadReadme(finalReadmeUrl);
+                            } else {
+                                readmeContainer.setVisibility(View.GONE);
+                                readmeTitle.setVisibility(View.GONE);
+                            }
+                        });
                     }
-
-                    List<GitHubFile> displayFiles = new ArrayList<>();
-                    displayFiles.addAll(directories);
-                    displayFiles.addAll(jsonFiles);
-
-                    String finalReadmeUrl = readmeUrl;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    String errorMessage = e.getMessage();
+                    if (errorMessage == null || errorMessage.isEmpty()) {
+                        errorMessage = e.getClass().getSimpleName();
+                    }
+                    String finalErrorMessage = errorMessage;
                     mainHandler.post(() -> {
+                        if (isFinishing() || isDestroyed()) return;
                         progressBar.setVisibility(View.GONE);
-                        contentScrollView.setVisibility(View.VISIBLE);
-                        fileRecyclerView.setVisibility(View.VISIBLE);
-                        fileAdapter.setFiles(displayFiles);
-
-                        if (finalReadmeUrl != null) {
-                            loadReadme(finalReadmeUrl);
-                        } else {
-                            readmeContainer.setVisibility(View.GONE);
-                            readmeTitle.setVisibility(View.GONE);
-                        }
+                        errorLayout.setVisibility(View.VISIBLE);
+                        errorText.setText("加载失败: " + finalErrorMessage + "\n\n请检查网络连接");
                     });
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-                String errorMessage = e.getMessage();
-                if (errorMessage == null || errorMessage.isEmpty()) {
-                    errorMessage = e.getClass().getSimpleName();
-                }
-                String finalErrorMessage = errorMessage;
-                mainHandler.post(() -> {
-                    progressBar.setVisibility(View.GONE);
-                    errorLayout.setVisibility(View.VISIBLE);
-                    errorText.setText("加载失败: " + finalErrorMessage + "\n\n请检查网络连接");
-                });
-            }
-        });
+            });
+        } catch (RejectedExecutionException e) {
+            e.printStackTrace();
+        }
     }
-
     private void updatePathHeader() {
         if (currentPathText != null) {
             currentPathText.setText("当前目录: " + currentPath);
@@ -230,7 +217,6 @@ public class OnlineQuestionBankActivity extends BaseActivity {
             upButton.setVisibility(BASE_PATH.equals(currentPath) ? View.GONE : View.VISIBLE);
         }
     }
-
     private void navigateUp() {
         if (BASE_PATH.equals(currentPath)) {
             return;
@@ -239,7 +225,6 @@ public class OnlineQuestionBankActivity extends BaseActivity {
         String parent = lastSlash > 0 ? currentPath.substring(0, lastSlash) : BASE_PATH;
         loadDirectory(parent);
     }
-
     private String buildApiUrl(String path) {
         String[] segments = path.split("/");
         StringBuilder builder = new StringBuilder(GITHUB_API_BASE);
@@ -251,48 +236,93 @@ public class OnlineQuestionBankActivity extends BaseActivity {
         }
         return builder.toString();
     }
-
+    private String buildRawUrl(String base, String path) {
+        String[] segments = path.split("/");
+        StringBuilder builder = new StringBuilder(base);
+        if (!base.endsWith("/")) {
+            builder.append('/');
+        }
+        for (int i = 0; i < segments.length; i++) {
+            if (i > 0) {
+                builder.append('/');
+            }
+            builder.append(Uri.encode(segments[i]));
+        }
+        return builder.toString();
+    }
     private void loadReadme(String url) {
+        if (executorService.isShutdown()) return;
         readmeTitle.setVisibility(View.VISIBLE);
         readmeContainer.setVisibility(View.VISIBLE);
         readmeText.setText("正在加载说明文档...");
-
-        executorService.execute(() -> {
-            try {
-                Request request = new Request.Builder().url(url).build();
-                try (Response response = client.newCall(request).execute()) {
-                    if (response.isSuccessful()) {
-                        String content = response.body().string();
-                        mainHandler.post(() -> {
-                            Markwon markwon = Markwon.create(this);
-                            markwon.setMarkdown(readmeText, content);
-                        });
+        try {
+            executorService.execute(() -> {
+                try {
+                    Request request = new Request.Builder().url(url).build();
+                    try (Response response = client.newCall(request).execute()) {
+                        if (response.isSuccessful()) {
+                            String content = response.body().string();
+                            mainHandler.post(() -> {
+                                if (isFinishing() || isDestroyed()) return;
+                                Markwon markwon = Markwon.create(this);
+                                markwon.setMarkdown(readmeText, content);
+                            });
+                        }
                     }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    mainHandler.post(() -> {
+                        if (isFinishing() || isDestroyed()) return;
+                        readmeText.setText("说明文档加载失败");
+                    });
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-                mainHandler.post(() -> readmeText.setText("说明文档加载失败"));
-            }
-        });
+            });
+        } catch (RejectedExecutionException e) {
+            e.printStackTrace();
+            mainHandler.post(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                readmeText.setText("说明文档加载失败");
+            });
+        }
     }
-
     private void downloadFile(GitHubFile file, int position) {
+        if (executorService.isShutdown()) return;
         file.isDownloading = true;
         if (file.isImported) {
             file.isImported = false;
             updateImportedState(file.path, false);
         }
         fileAdapter.notifyItemChanged(position);
-
-        executorService.execute(() -> {
-            try {
-                Request request = new Request.Builder().url(file.download_url).build();
-                try (Response response = client.newCall(request).execute()) {
-                    if (!response.isSuccessful()) throw new IOException("Download failed");
-
+        try {
+            executorService.execute(() -> {
+                downloadFileWithMirrors(file, position, 0);
+            });
+        } catch (RejectedExecutionException e) {
+            e.printStackTrace();
+            file.isDownloading = false;
+            fileAdapter.notifyItemChanged(position);
+            Toast.makeText(this, "下载失败: 线程池已关闭", Toast.LENGTH_SHORT).show();
+        }
+    }
+    
+    private void downloadFileWithMirrors(GitHubFile file, int position, int mirrorIndex) {
+        if (mirrorIndex >= GITHUB_MIRRORS.length) {
+            // 所有镜像都失败，尝试使用原始download_url
+            downloadFromUrl(file, position, file.download_url, true);
+            return;
+        }
+        
+        // 构建镜像URL（代理 raw）
+        String mirrorUrl = buildRawUrl(GITHUB_MIRRORS[mirrorIndex], file.path);
+        
+        try {
+            Request request = new Request.Builder()
+                .url(mirrorUrl)
+                .build();
+            try (Response response = client.newCall(request).execute()) {
+                if (response.isSuccessful()) {
                     File cacheDir = getCacheDir();
                     File outputFile = new File(cacheDir, file.name);
-
                     try (InputStream is = response.body().byteStream();
                          FileOutputStream fos = new FileOutputStream(outputFile)) {
                         byte[] buffer = new byte[4096];
@@ -301,36 +331,77 @@ public class OnlineQuestionBankActivity extends BaseActivity {
                             fos.write(buffer, 0, len);
                         }
                     }
-
+                    
+                    // 记住成功的镜像索引
+                    currentMirrorIndex = mirrorIndex;
+                    
                     mainHandler.post(() -> {
+                        if (isFinishing() || isDestroyed()) return;
                         file.isDownloading = false;
                         file.localPath = outputFile.getAbsolutePath();
                         fileAdapter.notifyItemChanged(position);
                         Toast.makeText(this, "下载完成: " + file.name, Toast.LENGTH_SHORT).show();
                     });
+                    return;
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-                mainHandler.post(() -> {
-                    file.isDownloading = false;
-                    fileAdapter.notifyItemChanged(position);
-                    Toast.makeText(this, "下载失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        // 当前镜像失败，尝试下一个
+        mainHandler.post(() -> {
+            if (!isFinishing() && !isDestroyed()) {
+                Toast.makeText(this, "镜像 " + (mirrorIndex + 1) + " 失败，尝试下一个...", Toast.LENGTH_SHORT).show();
             }
         });
+        downloadFileWithMirrors(file, position, mirrorIndex + 1);
     }
-
+    
+    private void downloadFromUrl(GitHubFile file, int position, String url, boolean isFinal) {
+        try {
+            Request request = new Request.Builder().url(url).build();
+            try (Response response = client.newCall(request).execute()) {
+                if (!response.isSuccessful()) throw new IOException("Download failed");
+                File cacheDir = getCacheDir();
+                File outputFile = new File(cacheDir, file.name);
+                try (InputStream is = response.body().byteStream();
+                     FileOutputStream fos = new FileOutputStream(outputFile)) {
+                    byte[] buffer = new byte[4096];
+                    int len;
+                    while ((len = is.read(buffer)) != -1) {
+                        fos.write(buffer, 0, len);
+                    }
+                }
+                mainHandler.post(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    file.isDownloading = false;
+                    file.localPath = outputFile.getAbsolutePath();
+                    fileAdapter.notifyItemChanged(position);
+                    Toast.makeText(this, "下载完成: " + file.name, Toast.LENGTH_SHORT).show();
+                });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            mainHandler.post(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                file.isDownloading = false;
+                fileAdapter.notifyItemChanged(position);
+                if (isFinal) {
+                    Toast.makeText(this, "下载失败: 所有镜像源均不可用", Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+    }
     private void importFile(GitHubFile file) {
         Intent intent = new Intent(this, ImportActivity.class);
         intent.putExtra("EXTRA_FILE_PATH", file.localPath);
         intent.putExtra(EXTRA_REPO_PATH, file.path);
         importLauncher.launch(intent);
     }
-
     private Set<String> getImportedFiles() {
         return new HashSet<>(preferences.getStringSet(KEY_IMPORTED_FILES, new HashSet<>()));
     }
-
     private void updateImportedState(String path, boolean imported) {
         Set<String> importedFiles = getImportedFiles();
         if (imported) {
@@ -340,7 +411,6 @@ public class OnlineQuestionBankActivity extends BaseActivity {
         }
         preferences.edit().putStringSet(KEY_IMPORTED_FILES, importedFiles).apply();
     }
-
     private String formatFileSize(long size) {
         if (size <= 0) {
             return "未知大小";
@@ -352,15 +422,12 @@ public class OnlineQuestionBankActivity extends BaseActivity {
         double mb = kb / 1024.0;
         return String.format(Locale.getDefault(), "%.1f MB", mb);
     }
-
     private class FileAdapter extends RecyclerView.Adapter<FileAdapter.ViewHolder> {
         private List<GitHubFile> files = new ArrayList<>();
-
         public void setFiles(List<GitHubFile> files) {
             this.files = files;
             notifyDataSetChanged();
         }
-
         public void markImported(String repoPath) {
             for (int i = 0; i < files.size(); i++) {
                 GitHubFile file = files.get(i);
@@ -372,65 +439,81 @@ public class OnlineQuestionBankActivity extends BaseActivity {
                 }
             }
         }
-
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             View view = LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.item_online_file, parent, false);
+                .inflate(R.layout.item_online_file, parent, false);
             return new ViewHolder(view);
         }
-
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             GitHubFile file = files.get(position);
             holder.fileName.setText(file.name);
-
+            
+            // 设置整个item的点击事件
             if (file.isDirectory()) {
                 holder.fileIcon.setImageResource(R.drawable.ic_folder);
                 holder.fileMeta.setText("文件夹");
                 holder.progressBar.setVisibility(View.GONE);
                 holder.actionButton.setVisibility(View.VISIBLE);
                 holder.actionButton.setText("进入");
-                holder.actionButton.setOnClickListener(v -> loadDirectory(file.path));
+                
+                // 整个item和按钮都可以点击进入目录
+                View.OnClickListener dirClickListener = v -> loadDirectory(file.path);
+                holder.itemView.setOnClickListener(dirClickListener);
+                holder.actionButton.setOnClickListener(dirClickListener);
                 return;
             }
-
+            
             holder.fileIcon.setImageResource(R.drawable.ic_link);
             holder.fileMeta.setText("JSON · " + formatFileSize(file.size));
-
+            
             if (file.isDownloading) {
                 holder.actionButton.setVisibility(View.INVISIBLE);
                 holder.progressBar.setVisibility(View.VISIBLE);
+                holder.itemView.setOnClickListener(null);
+                holder.itemView.setClickable(false);
             } else {
                 holder.progressBar.setVisibility(View.GONE);
                 holder.actionButton.setVisibility(View.VISIBLE);
+                holder.itemView.setClickable(true);
+                
+                int colorPrimary = ContextCompat.getColor(holder.itemView.getContext(), R.color.primary);
+                int colorSuccess = ContextCompat.getColor(holder.itemView.getContext(), R.color.success);
+                int colorWarning = ContextCompat.getColor(holder.itemView.getContext(), R.color.warning);
 
                 if (file.isImported) {
                     holder.actionButton.setText("重新下载");
-                    holder.actionButton.setOnClickListener(v -> downloadFile(file, position));
+                    holder.actionButton.setBackgroundTintList(ColorStateList.valueOf(colorWarning));
+                    View.OnClickListener downloadClickListener = v -> downloadFile(file, position);
+                    holder.itemView.setOnClickListener(downloadClickListener);
+                    holder.actionButton.setOnClickListener(downloadClickListener);
                 } else if (file.localPath != null) {
                     holder.actionButton.setText("导入");
-                    holder.actionButton.setOnClickListener(v -> importFile(file));
+                    holder.actionButton.setBackgroundTintList(ColorStateList.valueOf(colorSuccess));
+                    View.OnClickListener importClickListener = v -> importFile(file);
+                    holder.itemView.setOnClickListener(importClickListener);
+                    holder.actionButton.setOnClickListener(importClickListener);
                 } else {
                     holder.actionButton.setText("下载");
-                    holder.actionButton.setOnClickListener(v -> downloadFile(file, position));
+                    holder.actionButton.setBackgroundTintList(ColorStateList.valueOf(colorPrimary));
+                    View.OnClickListener downloadClickListener = v -> downloadFile(file, position);
+                    holder.itemView.setOnClickListener(downloadClickListener);
+                    holder.actionButton.setOnClickListener(downloadClickListener);
                 }
             }
         }
-
         @Override
         public int getItemCount() {
             return files.size();
         }
-
         class ViewHolder extends RecyclerView.ViewHolder {
             TextView fileName;
             TextView fileMeta;
             Button actionButton;
             ProgressBar progressBar;
             ImageView fileIcon;
-
             ViewHolder(View itemView) {
                 super(itemView);
                 fileName = itemView.findViewById(R.id.file_name);
@@ -441,23 +524,19 @@ public class OnlineQuestionBankActivity extends BaseActivity {
             }
         }
     }
-
     private static class GitHubFile {
         String name;
         String path;
         String type;
         long size;
         String download_url;
-
         boolean isDownloading;
         boolean isImported;
         String localPath;
-
         boolean isDirectory() {
             return "dir".equals(type);
         }
     }
-
     @Override
     protected void onDestroy() {
         super.onDestroy();

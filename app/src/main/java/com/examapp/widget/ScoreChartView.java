@@ -8,29 +8,29 @@ import android.graphics.Path;
 import android.graphics.Shader;
 import android.util.AttributeSet;
 import android.view.View;
-
+import android.view.ViewParent;
+import android.widget.HorizontalScrollView;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
-
 import com.examapp.R;
 import com.examapp.model.ExamHistoryEntry;
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class ScoreChartView extends View {
+
     private final List<Integer> scores = new ArrayList<>();
     private final Paint linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint pointPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint gridPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint axisBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint axisBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path linePath = new Path();
     private final Path fillPath = new Path();
     private float density;
-    
-    // Config
-    private static final float POINT_SPACING_DP = 50f; // Distance between points
+    private static final float POINT_SPACING_DP = 50f;
     private static final float LEFT_PADDING_DP = 40f;
     private static final float RIGHT_PADDING_DP = 20f;
     private static final float TOP_PADDING_DP = 20f;
@@ -51,6 +51,26 @@ public class ScoreChartView extends View {
         init(context);
     }
 
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        ViewParent parent = getParent();
+        if (parent instanceof View) {
+            ((View) parent).getViewTreeObserver().addOnScrollChangedListener(scrollChangedListener);
+        }
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        ViewParent parent = getParent();
+        if (parent instanceof View) {
+            ((View) parent).getViewTreeObserver().removeOnScrollChangedListener(scrollChangedListener);
+        }
+        super.onDetachedFromWindow();
+    }
+
+    private final android.view.ViewTreeObserver.OnScrollChangedListener scrollChangedListener = () -> invalidate();
+
     private void init(Context context) {
         density = context.getResources().getDisplayMetrics().density;
 
@@ -67,60 +87,73 @@ public class ScoreChartView extends View {
 
         gridPaint.setColor(ContextCompat.getColor(context, R.color.light_divider));
         gridPaint.setStrokeWidth(1f * density);
-        // Optional: Dash effect for grid
-        // gridPaint.setPathEffect(new DashPathEffect(new float[]{5f * density, 5f * density}, 0));
 
         textPaint.setColor(ContextCompat.getColor(context, R.color.gray));
         textPaint.setTextSize(11f * density);
         textPaint.setTextAlign(Paint.Align.RIGHT);
+        
+        // Background paint for Y-axis area (to cover chart content when scrolling)
+        axisBgPaint.setStyle(Paint.Style.FILL);
+        
+        // Border paint for Y-axis separator line
+        axisBorderPaint.setColor(ContextCompat.getColor(context, R.color.divider));
+        axisBorderPaint.setStrokeWidth(1f * density);
+        axisBorderPaint.setStyle(Paint.Style.STROKE);
+    }
+    
+    private int getParentScrollX() {
+        ViewParent parent = getParent();
+        if (parent instanceof HorizontalScrollView) {
+            return ((HorizontalScrollView) parent).getScrollX();
+        }
+        return 0;
     }
 
     public void setEntries(List<ExamHistoryEntry> entries) {
         scores.clear();
         if (entries != null && !entries.isEmpty()) {
-            // No limit on entries, show all history
-            // Reverse order if needed? Assuming entries are sorted by time (newest first usually)
-            // If entries are newest first, we might want to reverse them to show chronological order left-to-right
-            // Let's assume input is newest first (index 0 is latest), so we reverse to draw oldest -> newest
-            for (int i = entries.size() - 1; i >= 0; i--) {
+            // Data is already sorted from oldest to newest in HistoryActivity
+            for (int i = 0; i < entries.size(); i++) {
                 scores.add(entries.get(i).getScore());
             }
         }
-        requestLayout(); // Trigger onMeasure
+        requestLayout();
         invalidate();
     }
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int height = MeasureSpec.getSize(heightMeasureSpec);
-        
-        // Calculate required width based on data points
         int minWidth = 0;
         if (scores.size() > 1) {
             float contentWidth = (scores.size() - 1) * POINT_SPACING_DP * density;
-            minWidth = (int) (contentWidth + (LEFT_PADDING_DP + RIGHT_PADDING_DP) * density);
+            float firstPointOffset = 20f * density;
+            // Add padding and offset
+            minWidth = (int) (contentWidth + firstPointOffset + (LEFT_PADDING_DP + RIGHT_PADDING_DP) * density);
         } else {
-            minWidth = MeasureSpec.getSize(widthMeasureSpec); // Fallback to parent width
+            minWidth = MeasureSpec.getSize(widthMeasureSpec);
         }
 
-        // Ensure we are at least as wide as the parent (for empty state or few points)
         int parentWidth = MeasureSpec.getSize(widthMeasureSpec);
         int finalWidth = Math.max(minWidth, parentWidth);
-
         setMeasuredDimension(finalWidth, height);
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+
         linePath.reset();
         fillPath.reset();
 
         int width = getWidth();
         int height = getHeight();
-        
-        float left = LEFT_PADDING_DP * density;
-        float right = width - RIGHT_PADDING_DP * density;
+
+        // Get scroll offset from parent HorizontalScrollView
+        int scrollX = getParentScrollX();
+
+        float leftPadding = LEFT_PADDING_DP * density;
+        float rightPadding = RIGHT_PADDING_DP * density;
         float top = TOP_PADDING_DP * density;
         float bottom = height - BOTTOM_PADDING_DP * density;
         float chartHeight = bottom - top;
@@ -131,100 +164,112 @@ public class ScoreChartView extends View {
             return;
         }
 
-        // 1. Calculate Y-Axis Range
         int minScore = 100;
         int maxScore = 0;
         for (int score : scores) {
             if (score < minScore) minScore = score;
             if (score > maxScore) maxScore = score;
         }
-        
-        // Add padding to range
-        int rangePadding = 10;
+
+        int rangePadding = 5;
         float yMin = Math.max(0, minScore - rangePadding);
         float yMax = Math.min(100, maxScore + rangePadding);
-        
-        // Ensure minimum range to avoid flat line if all scores are same
+
+        // Ensure minimum range of 20
         if (yMax - yMin < 20) {
             yMin = Math.max(0, yMax - 20);
             if (yMax - yMin < 20) {
                 yMax = Math.min(100, yMin + 20);
             }
         }
-        
+
         float yRange = yMax - yMin;
 
-        // 2. Draw Grid & Labels
-        textPaint.setTextAlign(Paint.Align.RIGHT);
+        float contentWidth = Math.max(0, (scores.size() - 1) * POINT_SPACING_DP * density);
+        float firstPointOffset = 20f * density;
+        float drawEnd = Math.max(width, contentWidth + leftPadding + firstPointOffset + rightPadding);
+
         int gridLines = 4;
+
+        // Step 1: Draw grid lines across the whole chart
         for (int i = 0; i <= gridLines; i++) {
             float val = yMin + (yRange * i / gridLines);
             float y = bottom - ((val - yMin) / yRange) * chartHeight;
-            
-            canvas.drawLine(left, y, Math.max(right, (scores.size() - 1) * POINT_SPACING_DP * density + left), y, gridPaint);
-            canvas.drawText(String.valueOf((int) val), left - 6f * density, y + 4f * density, textPaint);
+            canvas.drawLine(leftPadding, y, drawEnd, y, gridPaint);
         }
 
-        // 3. Calculate Points
+        // Step 2: Build and draw the chart content (fill, line, points)
         List<Float[]> points = new ArrayList<>();
+        // Add extra padding for the first point so it's not covered by the axis
         for (int i = 0; i < scores.size(); i++) {
             float val = scores.get(i);
-            float x = left + i * POINT_SPACING_DP * density;
+            float x = leftPadding + firstPointOffset + i * POINT_SPACING_DP * density;
             float y = bottom - ((val - yMin) / yRange) * chartHeight;
             points.add(new Float[]{x, y});
         }
 
-        // 4. Construct Path (Cubic Bezier)
         if (!points.isEmpty()) {
             Float[] first = points.get(0);
             linePath.moveTo(first[0], first[1]);
-            fillPath.moveTo(first[0], bottom); // Start fill from bottom-left
+
+            fillPath.moveTo(first[0], bottom);
             fillPath.lineTo(first[0], first[1]);
 
             for (int i = 0; i < points.size() - 1; i++) {
                 Float[] p1 = points.get(i);
                 Float[] p2 = points.get(i + 1);
-                
+
+                // Cubic Bezier for smooth curves
                 float midX = (p1[0] + p2[0]) / 2;
-                // Control points for smooth curve
                 linePath.cubicTo(midX, p1[1], midX, p2[1], p2[0], p2[1]);
                 fillPath.cubicTo(midX, p1[1], midX, p2[1], p2[0], p2[1]);
             }
-            
-            // Close fill path
+
             Float[] last = points.get(points.size() - 1);
             fillPath.lineTo(last[0], bottom);
             fillPath.close();
 
-            // 5. Draw Fill Gradient
-            LinearGradient gradient = new LinearGradient(
-                    0, top, 0, bottom,
-                    ContextCompat.getColor(getContext(), R.color.primary_light), // Start color (needs to be defined or use primary with alpha)
-                    ContextCompat.getColor(getContext(), android.R.color.transparent),
-                    Shader.TileMode.CLAMP
-            );
-            // Fallback if primary_light not defined, use primary with alpha
+            // Gradient fill
             if (fillPaint.getShader() == null) {
-                 int colorPrimary = ContextCompat.getColor(getContext(), R.color.primary);
-                 int startColor = (colorPrimary & 0x00FFFFFF) | 0x40000000; // 25% alpha
-                 int endColor = (colorPrimary & 0x00FFFFFF) | 0x05000000; // ~2% alpha
-                 gradient = new LinearGradient(0, top, 0, bottom, startColor, endColor, Shader.TileMode.CLAMP);
+                int colorPrimary = ContextCompat.getColor(getContext(), R.color.primary);
+                int startColor = (colorPrimary & 0x00FFFFFF) | 0x40000000; // 25% alpha
+                int endColor = (colorPrimary & 0x00FFFFFF) | 0x05000000;   // ~3% alpha
+                LinearGradient gradient = new LinearGradient(
+                    0, top, 0, bottom,
+                    startColor, endColor,
+                    Shader.TileMode.CLAMP
+                );
+                fillPaint.setShader(gradient);
             }
-            
-            fillPaint.setShader(gradient);
-            canvas.drawPath(fillPath, fillPaint);
 
-            // 6. Draw Line
+            canvas.drawPath(fillPath, fillPaint);
             canvas.drawPath(linePath, linePaint);
 
-            // 7. Draw Points
+            // Draw points and values
             textPaint.setTextAlign(Paint.Align.CENTER);
             for (int i = 0; i < points.size(); i++) {
                 Float[] p = points.get(i);
                 canvas.drawCircle(p[0], p[1], 4f * density, pointPaint);
-                // Draw value above point
                 canvas.drawText(String.valueOf(scores.get(i)), p[0], p[1] - 8f * density, textPaint);
             }
+        }
+
+        // Step 3: Draw Y-axis background to cover chart content when scrolling
+        // The axis stays fixed at the left edge of the visible viewport
+        float axisAreaWidth = leftPadding;
+        axisBgPaint.setColor(ContextCompat.getColor(getContext(), R.color.surface));
+        canvas.drawRect(scrollX, 0, scrollX + axisAreaWidth, height, axisBgPaint);
+        
+        // Draw separator line between Y-axis and chart area
+        canvas.drawLine(scrollX + axisAreaWidth, 0, scrollX + axisAreaWidth, height, axisBorderPaint);
+
+        // Step 4: Draw Y-axis labels on top of the background (sticky position)
+        textPaint.setTextAlign(Paint.Align.RIGHT);
+        for (int i = 0; i <= gridLines; i++) {
+            float val = yMin + (yRange * i / gridLines);
+            float y = bottom - ((val - yMin) / yRange) * chartHeight;
+            // Draw label at fixed position relative to scroll
+            canvas.drawText(String.valueOf((int) val), scrollX + axisAreaWidth - 6f * density, y + 4f * density, textPaint);
         }
     }
 }

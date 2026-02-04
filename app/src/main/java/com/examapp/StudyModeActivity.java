@@ -4,10 +4,9 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.LinearLayout;
 import androidx.appcompat.widget.Toolbar;
-import com.examapp.data.QuestionManager;
 import com.examapp.util.BackgroundApplier;
+import com.google.android.material.card.MaterialCardView;
 
 public class StudyModeActivity extends BaseActivity {
 
@@ -38,27 +37,27 @@ public class StudyModeActivity extends BaseActivity {
     }
 
     private void setupClickListeners() {
-        LinearLayout studyModeCard = findViewById(R.id.study_mode_card);
-        LinearLayout sequentialPracticeCard = findViewById(R.id.sequential_practice_card);
-        LinearLayout randomPracticeCard = findViewById(R.id.random_practice_card);
-        LinearLayout endlessModeCard = findViewById(R.id.endless_mode_card);
-        LinearLayout wrongReviewCard = findViewById(R.id.wrong_review_card);
-        LinearLayout mockExamCard = findViewById(R.id.mock_exam_card);
-        LinearLayout wrongQuestionsCard = findViewById(R.id.wrong_questions_card);
-        LinearLayout searchCard = findViewById(R.id.search_card);
-        LinearLayout examHistoryCard = findViewById(R.id.exam_history_card);
-        LinearLayout wrongAnalysisCard = findViewById(R.id.wrong_analysis_card);
+        MaterialCardView studyModeCard = findViewById(R.id.study_mode_card);
+        MaterialCardView sequentialPracticeCard = findViewById(R.id.sequential_practice_card);
+        MaterialCardView randomPracticeCard = findViewById(R.id.random_practice_card);
+        MaterialCardView endlessModeCard = findViewById(R.id.endless_mode_card);
+        MaterialCardView wrongReviewCard = findViewById(R.id.wrong_review_card);
+        MaterialCardView mockExamCard = findViewById(R.id.mock_exam_card);
+        MaterialCardView wrongQuestionsCard = findViewById(R.id.wrong_questions_card);
+        MaterialCardView searchCard = findViewById(R.id.search_card);
+        MaterialCardView examHistoryCard = findViewById(R.id.exam_history_card);
+        MaterialCardView wrongAnalysisCard = findViewById(R.id.wrong_analysis_card);
 
-        studyModeCard.setOnClickListener(v -> startStudyMode());
-        sequentialPracticeCard.setOnClickListener(v -> startPractice(false));
-        randomPracticeCard.setOnClickListener(v -> startPractice(true));
-        endlessModeCard.setOnClickListener(v -> startEndlessMode());
-        wrongReviewCard.setOnClickListener(v -> startWrongReview());
-        mockExamCard.setOnClickListener(v -> startMockExam());
-        wrongQuestionsCard.setOnClickListener(v -> startWrongQuestions());
-        searchCard.setOnClickListener(v -> startSearch());
-        examHistoryCard.setOnClickListener(v -> startHistory());
-        wrongAnalysisCard.setOnClickListener(v -> startWrongAnalysis());
+        if (studyModeCard != null) studyModeCard.setOnClickListener(v -> startStudyMode());
+        if (sequentialPracticeCard != null) sequentialPracticeCard.setOnClickListener(v -> startPractice(false));
+        if (randomPracticeCard != null) randomPracticeCard.setOnClickListener(v -> startPractice(true));
+        if (endlessModeCard != null) endlessModeCard.setOnClickListener(v -> startEndlessMode());
+        if (wrongReviewCard != null) wrongReviewCard.setOnClickListener(v -> startWrongReview());
+        if (mockExamCard != null) mockExamCard.setOnClickListener(v -> startMockExam());
+        if (wrongQuestionsCard != null) wrongQuestionsCard.setOnClickListener(v -> startWrongQuestions());
+        if (searchCard != null) searchCard.setOnClickListener(v -> startSearch());
+        if (examHistoryCard != null) examHistoryCard.setOnClickListener(v -> startHistory());
+        if (wrongAnalysisCard != null) wrongAnalysisCard.setOnClickListener(v -> startWrongAnalysis());
     }
 
     private void startStudyMode() {

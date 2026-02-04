@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    
+    <!-- 手指图标 -->
+    <group android:name="finger">
+        <path
+            android:name="fingerPath"
+            android:fillColor="#4CAF50"
+            android:pathData="M 60,85 
+                           Q 50,85 45,80 
+                           Q 40,75 40,65 
+                           L 40,45 
+                           Q 40,35 45,30 
+                           Q 50,25 60,25 
+                           Q 70,25 75,30 
+                           Q 80,35 80,45 
+                           L 80,65 
+                           Q 80,75 75,80 
+                           Q 70,85 60,85 Z"/>
+    </group>
+    
+    <!-- 向上箭头 -->
+    <group android:name="arrow">
+        <path
+            android:name="arrowPath"
+            android:strokeColor="#2196F3"
+            android:strokeWidth="3"
+            android:strokeLineCap="round"
+            android:pathData="M 60,100 L 60,40 M 50,50 L 60,40 L 70,50"/>
+    </group>
+</vector>

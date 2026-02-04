@@ -63,8 +63,6 @@ public class MainActivity extends BaseActivity implements NavigationView.OnNavig
     private final Runnable hitokotoRefreshRunnable = this::loadHitokoto;
 
     private static final long HITOKOTO_REFRESH_INTERVAL_MS = 30 * 60 * 1000L;
-    private static final String PREFS_NAME = "notice_prefs";
-    private static final String KEY_NOTICE_SHOWN = "notice_shown";
 
     // Drawer 手势相关
     private float drawerGestureStartX;
@@ -81,7 +79,6 @@ public class MainActivity extends BaseActivity implements NavigationView.OnNavig
         setContentView(R.layout.activity_main);
 
         initializeUI();
-        showNoticeDialogIfNeeded();
         // 每次启动强制刷新
         forceRefreshHitokoto();
         loadSubjects();
@@ -190,60 +187,6 @@ public class MainActivity extends BaseActivity implements NavigationView.OnNavig
 
     private void stopHitokotoRefresh() {
         hitokotoHandler.removeCallbacks(hitokotoRefreshRunnable);
-    }
-
-    private void showNoticeDialogIfNeeded() {
-        SharedPreferences preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        if (preferences.getBoolean(KEY_NOTICE_SHOWN, false)) {
-            return;
-        }
-
-        Dialog dialog = new Dialog(this, android.R.style.Theme_Translucent_NoTitleBar);
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        dialog.setContentView(R.layout.dialog_notice);
-        dialog.setCancelable(true);
-        dialog.setCanceledOnTouchOutside(true);
-
-        // 获取主题颜色
-        android.util.TypedValue typedValue = new android.util.TypedValue();
-        getTheme().resolveAttribute(android.R.attr.textColorPrimary, typedValue, true);
-        int textColor = typedValue.data;
-
-        // 设置标题颜色
-        TextView noticeTitle = dialog.findViewById(R.id.notice_dialog_title);
-        if (noticeTitle != null) {
-            noticeTitle.setTextColor(textColor);
-        }
-
-        // 设置内容并明确指定颜色
-        TextView noticeContent = dialog.findViewById(R.id.notice_dialog_content);
-        if (noticeContent != null) {
-            noticeContent.setTextColor(textColor);
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                noticeContent.setText(Html.fromHtml(getString(R.string.notice_content), Html.FROM_HTML_MODE_LEGACY));
-            } else {
-                noticeContent.setText(Html.fromHtml(getString(R.string.notice_content)));
-            }
-            noticeContent.setMovementMethod(LinkMovementMethod.getInstance());
-        }
-
-        View container = dialog.findViewById(R.id.notice_dialog_container);
-        View closeButton = dialog.findViewById(R.id.notice_close_button);
-        if (container != null) {
-            container.setOnClickListener(v -> {
-                preferences.edit().putBoolean(KEY_NOTICE_SHOWN, true).apply();
-                dialog.dismiss();
-            });
-        }
-        if (closeButton != null) {
-            closeButton.setOnClickListener(v -> {
-                preferences.edit().putBoolean(KEY_NOTICE_SHOWN, true).apply();
-                dialog.dismiss();
-            });
-        }
-
-        dialog.setOnDismissListener(d -> preferences.edit().putBoolean(KEY_NOTICE_SHOWN, true).apply());
-        dialog.show();
     }
 
     private void setupItemTouchHelper() {

@@ -1,115 +1,104 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
-
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@color/primary"
-        android:elevation="4dp"
-        app:titleTextColor="@color/white" />
-
-    <androidx.cardview.widget.CardView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_margin="16dp"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="6dp"
-        app:cardBackgroundColor="?attr/colorSurface">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:padding="20dp">
-
-            <TextView
-                android:id="@+id/author_info_textview"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/author_info"
-                android:textSize="16sp"
-                android:textColor="?android:attr/textColorPrimary"
-                android:textColorLink="?attr/colorPrimary"
-                android:lineSpacingMultiplier="1.4"
-                android:layout_marginBottom="16dp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="公告"
-                android:textStyle="bold"
-                android:textSize="16sp"
-                android:textColor="?android:attr/textColorPrimary"
-                android:layout_marginBottom="8dp" />
-
-            <TextView
-                android:id="@+id/notice_textview"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/notice_content"
-                android:textSize="14sp"
-                android:textColor="?android:attr/textColorPrimary"
-                android:textColorLink="?attr/colorPrimary"
-                android:lineSpacingMultiplier="1.4"
-                android:layout_marginBottom="24dp" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/light_gray"
-                android:layout_marginBottom="16dp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="💝 开发不易，感谢支持"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:gravity="center"
-                android:layout_marginBottom="8dp"/>
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="欢迎star，欢迎投喂 ☕"
-                android:textColor="@color/gray"
-                android:textSize="14sp"
-                android:gravity="center"
-                android:layout_marginBottom="16dp" />
-
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:layout_gravity="center">
-
-                <ImageView
-                    android:id="@+id/donate_image"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_gravity="center"
-                    android:src="@drawable/donate_qr"
-                    android:scaleType="fitCenter"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    android:contentDescription="@string/donate_caption" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="bottom|center_horizontal"
-                    android:layout_marginBottom="8dp"
-                    android:text="👆 点击查看大图"
-                    android:textColor="@color/gray"
-                    android:textSize="12sp" />
-            </FrameLayout>
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
+xmlns:app="http://schemas.android.com/apk/res-auto"
+android:layout_width="match_parent"
+android:layout_height="match_parent"
+android:orientation="vertical">
+<androidx.appcompat.widget.Toolbar
+android:id="@+id/toolbar"
+android:layout_width="match_parent"
+android:layout_height="?attr/actionBarSize"
+android:background="@color/primary"
+android:elevation="4dp"
+app:titleTextColor="@color/white" />
+<androidx.cardview.widget.CardView
+android:layout_width="match_parent"
+android:layout_height="0dp"
+android:layout_weight="1"
+android:layout_margin="16dp"
+app:cardCornerRadius="12dp"
+app:cardElevation="6dp"
+app:cardBackgroundColor="?attr/colorSurface">
+<LinearLayout
+android:layout_width="match_parent"
+android:layout_height="match_parent"
+android:orientation="vertical"
+android:padding="20dp">
+<TextView
+android:id="@+id/author_info_textview"
+android:layout_width="match_parent"
+android:layout_height="wrap_content"
+android:text="@string/author_info"
+android:textSize="16sp"
+android:textColor="?android:attr/textColorPrimary"
+android:textColorLink="?attr/colorPrimary"
+android:lineSpacingMultiplier="1.4"
+android:layout_marginBottom="16dp" />
+<TextView
+android:layout_width="match_parent"
+android:layout_height="wrap_content"
+android:text="公告"
+android:textStyle="bold"
+android:textSize="16sp"
+android:textColor="?android:attr/textColorPrimary"
+android:layout_marginBottom="8dp" />
+<TextView
+android:id="@+id/notice_textview"
+android:layout_width="match_parent"
+android:layout_height="wrap_content"
+android:text="@string/notice_content"
+android:textSize="14sp"
+android:textColor="?android:attr/textColorPrimary"
+android:textColorLink="?attr/colorPrimary"
+android:lineSpacingMultiplier="1.4"
+android:layout_marginBottom="24dp" />
+<View
+android:layout_width="match_parent"
+android:layout_height="1dp"
+android:background="?android:attr/listDivider"
+android:layout_marginBottom="16dp" />
+<TextView
+android:layout_width="match_parent"
+android:layout_height="wrap_content"
+android:text="💝 开发不易，感谢支持"
+android:textSize="16sp"
+android:textStyle="bold"
+android:gravity="center"
+android:textColor="?android:attr/textColorPrimary"
+android:layout_marginBottom="8dp"/>
+<TextView
+android:layout_width="match_parent"
+android:layout_height="wrap_content"
+android:text="欢迎star，欢迎投喂 ☕"
+android:textColor="?android:attr/textColorSecondary"
+android:textSize="14sp"
+android:gravity="center"
+android:layout_marginBottom="16dp" />
+<FrameLayout
+android:layout_width="match_parent"
+android:layout_height="0dp"
+android:layout_weight="1"
+android:layout_gravity="center">
+<ImageView
+android:id="@+id/donate_image"
+android:layout_width="match_parent"
+android:layout_height="match_parent"
+android:layout_gravity="center"
+android:src="@drawable/donate_qr"
+android:scaleType="fitCenter"
+android:clickable="true"
+android:focusable="true"
+android:foreground="?attr/selectableItemBackground"
+android:contentDescription="@string/donate_caption" />
+<TextView
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:layout_gravity="bottom|center_horizontal"
+android:layout_marginBottom="8dp"
+android:text="👆 点击查看大图"
+android:textColor="?android:attr/textColorSecondary"
+android:textSize="12sp" />
+</FrameLayout>
+</LinearLayout>
+</androidx.cardview.widget.CardView>
 </LinearLayout>

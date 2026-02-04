@@ -15,7 +15,6 @@ import android.widget.RadioGroup;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import android.view.Menu;
 import android.text.SpannableString;
 import android.text.style.ForegroundColorSpan;
@@ -35,6 +34,10 @@ import com.examapp.data.MockExamCacheManager;
 import com.examapp.model.ExamHistoryEntry;
 import com.examapp.model.Question;
 import com.examapp.model.Subject;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
+import android.widget.ProgressBar;
+import com.examapp.adapter.SimilarQuestionsAdapter;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,6 +47,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class MockExamActivity extends BaseActivity implements GestureDetector.OnGestureListener {
+
     private QuestionManager questionManager;
     private MockExamCacheManager cacheManager;
     private Subject subject;
@@ -55,8 +59,8 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
     private GestureDetectorCompat gestureDetector;
     private boolean isBindingOptions;
     private boolean isRestoredFromCache = false;
-    private boolean isExamSubmitted = false; // 标记考试是否已交卷
-    private Set<Integer> manuallyStarredInThisExam = new HashSet<>(); // 记录本次考试中手动点击过星标的题目索引
+    private boolean isExamSubmitted = false;
+    private Set<Integer> manuallyStarredInThisExam = new HashSet<>();
 
     private DrawerLayout drawerLayout;
     private RecyclerView questionNavRecyclerView;
@@ -72,6 +76,8 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
     private Button submitButton;
     private Button favoriteButton;
 
+    // isScrolledToBottom and isLoadingSimilarQuestions are removed as requested
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -79,17 +85,18 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
 
         questionManager = QuestionManager.getInstance(this);
         cacheManager = MockExamCacheManager.getInstance(this);
+
         subjectId = getIntent().getStringExtra(StudyModeActivity.EXTRA_SUBJECT_ID);
         subject = questionManager.getSubject(subjectId);
         subjectName = getIntent().getStringExtra(StudyModeActivity.EXTRA_SUBJECT_NAME);
+
         if ((subjectName == null || subjectName.isEmpty()) && subject != null) {
             subjectName = subject.getDisplayName();
         }
-        gestureDetector = new GestureDetectorCompat(this, this);
 
+        gestureDetector = new GestureDetectorCompat(this, this);
         initializeUI();
-        
-        // 检查是否有未完成的考试缓存
+
         if (cacheManager.hasCachedExam(subjectId)) {
             showRestoreExamDialog();
         } else {
@@ -97,18 +104,14 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
             displayCurrentQuestion();
         }
     }
-    
-    /**
-     * 显示恢复考试对话框
-     */
+
     private void showRestoreExamDialog() {
         String cacheTime = cacheManager.getFormattedCacheTime();
         int answeredCount = cacheManager.getAnsweredCount();
         int totalCount = cacheManager.getTotalCount();
-        
         String message = String.format("发现未完成的考试记录\n保存时间: %s\n已答: %d/%d 题\n\n是否继续上次的考试？",
                 cacheTime, answeredCount, totalCount);
-        
+
         new AlertDialog.Builder(this)
                 .setTitle("恢复考试")
                 .setMessage(message)
@@ -123,17 +126,13 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
                 .setCancelable(false)
                 .show();
     }
-    
-    /**
-     * 从缓存恢复考试状态
-     */
+
     private void restoreFromCache() {
         examQuestions = cacheManager.getCachedQuestions();
         answers = cacheManager.getCachedAnswers();
         currentPosition = cacheManager.getCachedPosition();
         isRestoredFromCache = true;
-        
-        // 恢复题目的答题状态
+
         for (int i = 0; i < examQuestions.size(); i++) {
             Question q = examQuestions.get(i);
             if (answers.containsKey(i)) {
@@ -142,7 +141,6 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
                 q.setAnswerState(Question.AnswerState.UNANSWERED);
             }
         }
-        
         displayCurrentQuestion();
         Toast.makeText(this, "已恢复上次考试进度", Toast.LENGTH_SHORT).show();
     }
@@ -150,7 +148,6 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
     private void initializeUI() {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        
         drawerLayout = findViewById(R.id.mock_drawer_layout);
         questionNavRecyclerView = findViewById(R.id.question_nav_recycler_view);
         scrollPercentageText = findViewById(R.id.scroll_percentage_text);
@@ -178,6 +175,8 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
             return false;
         });
 
+        // Removed scroll listener for similarity check
+
         questionNumberView = findViewById(R.id.question_number);
         questionTextView = findViewById(R.id.question_text);
         answeredProgressView = findViewById(R.id.answered_progress);
@@ -200,20 +199,15 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
     }
 
     private void loadExamQuestions() {
-        // 不再调用 resetUserAnswers，避免清除顺序刷题的答题记录
-        // 模拟考试使用独立的 answers Map 来记录本次考试的答案
         if (subject != null) {
             examQuestions = questionManager.getMockExamQuestions(subjectId);
         } else {
             examQuestions = new ArrayList<>();
         }
-        
-        // 修复：重置克隆题目的答题状态，避免被顺序刷题的记录污染侧边栏
         for (Question q : examQuestions) {
             q.setUserAnswer(null);
             q.setAnswerState(Question.AnswerState.UNANSWERED);
         }
-        
         answers = new HashMap<>();
         currentPosition = 0;
     }
@@ -232,7 +226,6 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
 
         isBindingOptions = true;
         optionsGroup.removeAllViews();
-
         List<String> opts = question.getOptions();
         boolean isMultipleChoice = "多选题".equals(question.getType());
 
@@ -249,8 +242,8 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
                     cb.setText(option);
                     cb.setTextSize(16);
                     LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
                     );
                     lp.setMargins(0, 16, 0, 16);
                     cb.setLayoutParams(lp);
@@ -267,8 +260,8 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
                     rb.setText(option);
                     rb.setTextSize(16);
                     LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
                     );
                     lp.setMargins(0, 16, 0, 16);
                     rb.setLayoutParams(lp);
@@ -305,11 +298,11 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
             }
         }
         isBindingOptions = false;
-
         updateFavoriteButtonLabel(question);
         updateAnsweredProgress();
         updateNavigationButtons();
         updateQuestionNavigation();
+        mockScrollView.scrollTo(0, 0);
     }
 
     private void updateQuestionNavigation() {
@@ -319,7 +312,7 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
                 currentPosition = position;
                 displayCurrentQuestion();
                 drawerLayout.closeDrawer(GravityCompat.START);
-            }, false, examQuestions); // isReviewMode is false for mock exam
+            }, false, examQuestions);
 
             GridLayoutManager layoutManager = new GridLayoutManager(this, 5);
             layoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
@@ -328,22 +321,21 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
                     return subjectExpandableAdapter.getItemViewType(position) == SubjectExpandableAdapter.TYPE_HEADER ? 5 : 1;
                 }
             });
+
             questionNavRecyclerView.setLayoutManager(layoutManager);
             questionNavRecyclerView.setAdapter(subjectExpandableAdapter);
-            
-            // 添加滚动监听器，显示滚动百分比
+
             questionNavRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
                 @Override
                 public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
                     super.onScrolled(recyclerView, dx, dy);
                     updateScrollPercentage();
                 }
-                
+
                 @Override
                 public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
                     super.onScrollStateChanged(recyclerView, newState);
                     if (newState == RecyclerView.SCROLL_STATE_IDLE) {
-                        // 滚动停止后延迟隐藏百分比
                         if (scrollPercentageText != null) {
                             scrollPercentageText.postDelayed(() -> {
                                 if (scrollPercentageText != null) {
@@ -352,15 +344,13 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
                             }, 1500);
                         }
                     } else if (newState == RecyclerView.SCROLL_STATE_DRAGGING) {
-                        // 开始滚动时显示百分比
                         if (scrollPercentageText != null) {
                             scrollPercentageText.setVisibility(View.VISIBLE);
                         }
                     }
                 }
             });
-            
-            // 添加抽屉打开监听，自动滚动到当前题目
+
             drawerLayout.addDrawerListener(new DrawerLayout.SimpleDrawerListener() {
                 @Override
                 public void onDrawerOpened(View drawerView) {
@@ -376,6 +366,7 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
                     }
                 }
             });
+
         } else {
             subjectExpandableAdapter.setCurrentQuestionIndex(currentPosition);
             subjectExpandableAdapter.updateAnswers(new HashMap<>(answers));
@@ -414,13 +405,7 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
         return items;
     }
 
-    /**
-     * 更新星标按钮的显示文本
-     * 为了保证模拟考试的真实性，默认始终显示"星标"
-     * 只有当用户在本次考试中手动点击过星标按钮后，才显示"取消星标"
-     */
     private void updateFavoriteButtonLabel(Question question) {
-        // 只有本次考试中手动标记过的题目才显示"取消星标"
         if (manuallyStarredInThisExam.contains(currentPosition)) {
             favoriteButton.setText(R.string.unstar);
         } else {
@@ -496,12 +481,6 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
         updateQuestionNavigation();
     }
 
-    /**
-     * 切换星标状态
-     * 在模拟考试中，星标按钮的行为：
-     * - 默认显示"星标"，点击后将题目加入错题本，并显示"取消星标"
-     * - 如果已显示"取消星标"，点击后将题目从错题本移除，恢复显示"星标"
-     */
     private void toggleStar() {
         if (examQuestions == null || examQuestions.isEmpty()) {
             return;
@@ -509,28 +488,21 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
         Question question = examQuestions.get(currentPosition);
         int originalIndex = getOriginalQuestionIndex(currentPosition);
         if (originalIndex < 0) return;
-        
-        // 通过ID从原始题目列表中查找题目
+
         Question originalQuestion = findOriginalQuestion(question);
         if (originalQuestion == null) return;
-        
-        // 检查是否在本次考试中已手动标记过
+
         boolean wasManuallyStarred = manuallyStarredInThisExam.contains(currentPosition);
-        
+
         if (wasManuallyStarred) {
-            // 已经手动标记过，现在要取消
             manuallyStarredInThisExam.remove(currentPosition);
-            // 如果原本不在错题本中，则从错题本移除
             if (!question.isWrong()) {
-                // 这道题是本次考试中添加的，需要移除
                 questionManager.removeWrongQuestion(subjectId, originalIndex);
                 originalQuestion.setWrong(false);
             }
             Toast.makeText(this, R.string.star_removed, Toast.LENGTH_SHORT).show();
         } else {
-            // 没有手动标记过，现在要添加
             manuallyStarredInThisExam.add(currentPosition);
-            // 无论原本是否在错题本中，都确保添加到错题本
             if (!originalQuestion.isWrong()) {
                 questionManager.addWrongQuestion(subjectId, originalIndex);
                 originalQuestion.setWrong(true);
@@ -538,7 +510,6 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
             }
             Toast.makeText(this, R.string.star_added, Toast.LENGTH_SHORT).show();
         }
-        
         updateFavoriteButtonLabel(question);
     }
 
@@ -580,26 +551,24 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
         for (int i = 0; i < examQuestions.size(); i++) {
             Question question = examQuestions.get(i);
             String userAnswer = answers.get(i);
-            question.setUserAnswer(userAnswer); // Set user answer for correct evaluation
+            question.setUserAnswer(userAnswer);
+
             if (userAnswer != null && !userAnswer.isEmpty()) {
                 answeredQuestions++;
             }
+
             boolean isCorrect = question.isAnsweredCorrectly();
             int originalIndex = getOriginalQuestionIndex(i);
-            
-            // 通过ID从原始题目列表中查找题目
             Question originalQuestion = findOriginalQuestion(question);
 
             if (isCorrect) {
                 totalScore += questionManager.scoreQuestion(subjectId, question);
                 correctCount++;
-                // 更新原始题目的星标状态
                 if (originalQuestion != null && originalQuestion.isWrong() && originalIndex >= 0) {
                     questionManager.removeWrongQuestion(subjectId, originalIndex);
                     originalQuestion.setWrong(false);
                 }
             } else {
-                // 更新原始题目的星标状态
                 if (originalQuestion != null && !originalQuestion.isWrong() && originalIndex >= 0) {
                     questionManager.addWrongQuestion(subjectId, originalIndex);
                     originalQuestion.setWrong(true);
@@ -625,12 +594,9 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
         entry.setScore(totalScore);
         entry.setMaxScore(maxScore);
         entry.setQuestionRecords(records);
+
         questionManager.addExamHistoryEntry(entry);
-        
-        // 标记考试已交卷，防止 onPause 重新保存缓存
         isExamSubmitted = true;
-        
-        // 交卷后清除缓存
         cacheManager.clearCache();
 
         Intent resultIntent = new Intent(this, ResultActivity.class);
@@ -653,8 +619,6 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
         }
         Question question = examQuestions.get(position);
         String questionId = question.getId();
-        
-        // 使用ID查找原始索引，而不是对象引用
         List<Question> originalQuestions = subject.getQuestions();
         for (int i = 0; i < originalQuestions.size(); i++) {
             Question q = originalQuestions.get(i);
@@ -662,13 +626,9 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
                 return i;
             }
         }
-        
         return -1;
     }
-    
-    /**
-     * 通过ID从原始题目列表中查找题目对象
-     */
+
     private Question findOriginalQuestion(Question clonedQuestion) {
         if (subject == null || subject.getQuestions() == null || clonedQuestion == null) {
             return null;
@@ -685,16 +645,10 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
     @Override
     protected void onPause() {
         super.onPause();
-        // 保存当前考试状态（仅当考试未交卷时）
         saveExamState();
     }
-    
-    /**
-     * 保存考试状态到缓存
-     * 只有在考试未交卷时才保存
-     */
+
     private void saveExamState() {
-        // 如果已经交卷，不再保存缓存
         if (isExamSubmitted) {
             return;
         }
@@ -703,15 +657,13 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
             cacheManager.saveExamState(subjectId, subjectName, examQuestions, answers, currentPosition);
         }
     }
-    
+
     @Override
     public void onBackPressed() {
         if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
             drawerLayout.closeDrawer(GravityCompat.START);
             return;
         }
-        
-        // 显示退出确认对话框
         new AlertDialog.Builder(this)
                 .setTitle("退出考试")
                 .setMessage("考试进度会自动保存，下次进入可以继续作答。\n确定要退出吗？")
@@ -757,6 +709,7 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
         if (e1 != null && e2 != null) {
             float diffX = e2.getX() - e1.getX();
             float diffY = e2.getY() - e1.getY();
+
             if (Math.abs(diffX) > Math.abs(diffY)) {
                 if (diffX > 100) {
                     moveToPreviousQuestion();
@@ -765,6 +718,8 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
                     moveToNextQuestion();
                     return true;
                 }
+            } else if (Math.abs(diffY) > Math.abs(diffX)) {
+                // Vertical fling - Mock exam does not have similar question feature via gesture
             }
         }
         return false;
@@ -785,10 +740,7 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
         String type = q.getType() != null ? q.getType().toLowerCase() : cat;
         return type.contains("判断") || type.contains("true") || type.contains("false");
     }
-    
-    /**
-     * 滚动侧边栏到当前题目位置
-     */
+
     private void scrollToCurrentQuestion() {
         if (subjectExpandableAdapter != null && questionNavRecyclerView != null) {
             int adapterPosition = findAdapterPositionForQuestion(currentPosition);
@@ -797,19 +749,15 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
             }
         }
     }
-    
-    /**
-     * 根据题目索引找到适配器中的位置
-     */
+
     private int findAdapterPositionForQuestion(int questionIndex) {
         if (subjectExpandableAdapter == null || examQuestions == null) return -1;
-        
         int position = 0;
         String currentType = null;
         for (int i = 0; i <= questionIndex && i < examQuestions.size(); i++) {
             Question q = examQuestions.get(i);
             if (!q.getType().equals(currentType)) {
-                position++; // header
+                position++;
                 currentType = q.getType();
             }
             if (i == questionIndex) {
@@ -819,31 +767,22 @@ public class MockExamActivity extends BaseActivity implements GestureDetector.On
         }
         return position > 0 ? position : 0;
     }
-    
-    /**
-     * 更新滚动百分比显示（位置跟随滚动条）
-     */
+
     private void updateScrollPercentage() {
         if (scrollPercentageText == null || questionNavRecyclerView == null) return;
-        
         int offset = questionNavRecyclerView.computeVerticalScrollOffset();
         int range = questionNavRecyclerView.computeVerticalScrollRange() - questionNavRecyclerView.computeVerticalScrollExtent();
-        
         if (range > 0) {
             int percentage = (int) ((offset * 100.0f) / range);
             percentage = Math.max(0, Math.min(100, percentage));
             scrollPercentageText.setText(percentage + "%");
-            
-            // 计算百分比文字的Y位置，跟随滚动条
             float scrollRatio = (float) offset / range;
             int recyclerHeight = questionNavRecyclerView.getHeight();
             int textHeight = scrollPercentageText.getHeight();
             if (textHeight == 0) textHeight = 30;
-            
             int maxY = recyclerHeight - textHeight - 16;
             int targetY = (int) (scrollRatio * maxY);
             targetY = Math.max(8, Math.min(targetY, maxY));
-            
             scrollPercentageText.setTranslationY(targetY);
         } else {
             scrollPercentageText.setText("0%");

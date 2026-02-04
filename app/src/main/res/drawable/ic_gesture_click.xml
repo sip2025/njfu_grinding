@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    
+    <!-- 点击波纹 -->
+    <group android:name="ring" android:pivotX="60" android:pivotY="60">
+        <path
+            android:name="ringPath"
+            android:strokeColor="#2196F3"
+            android:strokeWidth="3"
+            android:fillColor="#00000000"
+            android:pathData="M60,60 m-18,0 a18,18 0 1,1 36,0 a18,18 0 1,1 -36,0"/>
+    </group>
+    
+    <!-- 手指点 -->
+    <group android:name="finger" android:pivotX="60" android:pivotY="60">
+        <path
+            android:name="fingerDot"
+            android:fillColor="#4CAF50"
+            android:pathData="M60,60 m-6,0 a6,6 0 1,1 12,0 a6,6 0 1,1 -12,0"/>
+    </group>
+</vector>

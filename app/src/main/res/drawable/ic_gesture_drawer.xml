@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    
+    <!-- 手机轮廓 -->
+    <group android:name="phone">
+        <path
+            android:name="phoneBody"
+            android:strokeColor="#9E9E9E"
+            android:strokeWidth="3"
+            android:fillColor="#00000000"
+            android:pathData="M 30,20 L 90,20 L 90,100 L 30,100 Z"/>
+    </group>
+    
+    <!-- 抽屉线条 -->
+    <group android:name="drawer">
+        <path
+            android:name="drawerLines"
+            android:strokeColor="#2196F3"
+            android:strokeWidth="3"
+            android:strokeLineCap="round"
+            android:pathData="M 40,45 L 80,45 M 40,60 L 80,60 M 40,75 L 80,75"/>
+    </group>
+    
+    <!-- 向右滑的手势 -->
+    <group android:name="gesture">
+        <path
+            android:name="gestureArrow"
+            android:strokeColor="#4CAF50"
+            android:strokeWidth="3"
+            android:strokeLineCap="round"
+            android:pathData="M 20,90 L 55,90 M 45,80 L 55,90 L 45,100"/>
+    </group>
+</vector>

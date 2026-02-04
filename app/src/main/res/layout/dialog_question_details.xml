@@ -3,7 +3,8 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="24dp">
+    android:padding="20dp"
+    android:minWidth="320dp">
 
     <TextView
         android:id="@+id/dialog_question_text"
@@ -11,48 +12,63 @@
         android:layout_height="wrap_content"
         android:textSize="18sp"
         android:textStyle="bold"
-        android:layout_marginBottom="16dp" />
+        android:textColor="@color/black"
+        android:layout_marginBottom="16dp"/>
 
     <TextView
         android:id="@+id/dialog_options_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textSize="16sp"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="16dp"/>
 
     <TextView
         android:id="@+id/dialog_user_answer_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="16sp"
-        android:layout_marginBottom="8dp" />
+        android:textSize="14sp"
+        android:textColor="@color/primary"
+        android:layout_marginBottom="8dp"/>
 
     <TextView
         android:id="@+id/dialog_correct_answer_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="16sp"
-        android:layout_marginBottom="16dp" />
+        android:textSize="14sp"
+        android:textColor="@color/success"
+        android:textStyle="bold"
+        android:layout_marginBottom="24dp"/>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center">
+        android:gravity="end">
 
         <Button
             android:id="@+id/dialog_star_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp" />
+            android:text="星标"
+            android:layout_marginEnd="8dp"
+            style="@style/Widget.MaterialComponents.Button.TextButton"/>
 
         <Button
             android:id="@+id/dialog_ai_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/ai_ask"
-            android:backgroundTint="@color/primary"
-            android:visibility="gone" />
+            android:text="AI 答疑"
+            android:layout_marginEnd="8dp"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:textColor="@color/primary"/>
+
+        <Button
+            android:id="@+id/dialog_similar_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="相似题"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:textColor="@color/primary"/>
     </LinearLayout>
 
 </LinearLayout>

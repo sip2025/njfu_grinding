@@ -16,14 +16,12 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ProgressBar;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.GestureDetectorCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
-
 import com.examapp.data.QuestionManager;
 import com.examapp.data.AISettingsManager;
 import com.examapp.data.AICacheManager;
@@ -31,8 +29,11 @@ import com.examapp.service.AIService;
 import com.examapp.model.Question;
 import com.examapp.model.Subject;
 import com.examapp.util.DraggableFABHelper;
+import com.examapp.util.GestureGuideHelper;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.button.MaterialButton;
+import com.airbnb.lottie.LottieAnimationView;
 import io.noties.markwon.Markwon;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -49,6 +50,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import com.examapp.adapter.SimilarQuestionsAdapter;
 
 public class PracticeActivity extends BaseActivity implements GestureDetector.OnGestureListener {
 
@@ -63,19 +65,26 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
     private AICacheManager aiCacheManager;
     private AIService aiService;
     private Markwon markwon;
+
     private Subject subject;
     private List<Question> questions;
     private List<Question> baseQuestions;
     private int currentPosition;
     private List<Integer> questionHistory = new ArrayList<>();
     private String subjectId;
+
     private boolean isReviewMode;
-    private boolean isWrongReviewMode; // 新增：错题回顾模式标志
+    private boolean isWrongReviewMode;
     private boolean isRandomOrder;
+
     private GestureDetectorCompat gestureDetector;
     private boolean isBindingQuestion;
+
     private FloatingActionButton aiAssistantButton;
     private DraggableFABHelper draggableFABHelper;
+    private GestureGuideHelper gestureGuide;
+    private LottieAnimationView feedbackAnimation;
+    private boolean isFavorited = false;
 
     private TextView questionNumberView;
     private TextView questionTextView;
@@ -98,8 +107,11 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
     private float drawerGestureStartX;
     private boolean drawerGestureEligible;
     private static final int OPEN_THRESHOLD_PX = 60;
+    private String currentFilterKeyword = null;
 
-    private String currentFilterKeyword = null; 
+    private float gestureStartY = 0;
+    private float gestureStartScrollPercent = 0;
+    private boolean isLoadingSimilarQuestions = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,6 +123,7 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
         aiCacheManager = AICacheManager.getInstance(this);
         aiService = AIService.getInstance(this);
         markwon = Markwon.create(this);
+
         subjectId = getIntent().getStringExtra(StudyModeActivity.EXTRA_SUBJECT_ID);
         subject = questionManager.getSubject(subjectId);
 
@@ -122,6 +135,7 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
         gestureDetector = new GestureDetectorCompat(this, this);
 
         initializeUI();
+        initGestureGuide();
 
         if (presetMode == null) {
             showModeSelectionDialog();
@@ -144,8 +158,8 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
         legendView = findViewById(R.id.legend_view);
         scrollPercentageText = findViewById(R.id.scroll_percentage_text);
         typeMenuButton = findViewById(R.id.type_menu_button);
-        practiceScrollView = findViewById(R.id.practice_scroll_view);
 
+        practiceScrollView = findViewById(R.id.practice_scroll_view);
         questionNumberView = findViewById(R.id.question_number);
         questionTextView = findViewById(R.id.question_text);
         optionsGroup = findViewById(R.id.options_group);
@@ -154,13 +168,12 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
         favoriteButton = findViewById(R.id.favorite_button);
         feedbackLayout = findViewById(R.id.feedback_layout);
         feedbackTextView = findViewById(R.id.feedback_text);
-
+        feedbackAnimation = findViewById(R.id.feedback_animation);
         aiAssistantButton = findViewById(R.id.ai_assistant_button);
-        
-        // 设置拖动功能
+
         draggableFABHelper = new DraggableFABHelper();
         draggableFABHelper.makeDraggable(aiAssistantButton, v -> showAIDialog());
-        
+
         nextButton.setOnClickListener(v -> moveToNextQuestion());
         previousButton.setOnClickListener(v -> moveToPreviousQuestion());
         favoriteButton.setOnClickListener(v -> toggleWrongQuestion());
@@ -168,7 +181,7 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
         findViewById(R.id.btn_single_choice).setOnClickListener(v -> filterQuestionsByType("单选题"));
         findViewById(R.id.btn_multiple_choice).setOnClickListener(v -> filterQuestionsByType("多选题"));
         findViewById(R.id.btn_true_false).setOnClickListener(v -> filterQuestionsByType("判断题"));
-        findViewById(R.id.btn_mixed).setOnClickListener(v -> filterQuestionsByType(null)); 
+        findViewById(R.id.btn_mixed).setOnClickListener(v -> filterQuestionsByType(null));
 
         typeMenuButton.setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
 
@@ -197,6 +210,25 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
 
         practiceScrollView.setOnTouchListener((v, event) -> {
             gestureDetector.onTouchEvent(event);
+            
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    gestureStartY = event.getY();
+                    gestureStartScrollPercent = getScrollPercentage();
+                    break;
+                    
+                case MotionEvent.ACTION_UP:
+                    float endY = event.getY();
+                    float endScrollPercent = getScrollPercentage();
+                    
+                    // Check if user swiped up from 75% area to 20% area
+                    if (gestureStartScrollPercent >= 0.75f && endScrollPercent <= 0.20f &&
+                        gestureStartY - endY > 100 && !isLoadingSimilarQuestions) {
+                        showSimilarQuestionsDialog();
+                        return true;
+                    }
+                    break;
+            }
             return false;
         });
 
@@ -209,6 +241,7 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
                 }
             }
         });
+
         updateSidebarButtonStyles(null);
     }
 
@@ -234,7 +267,7 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
     private void applyMode(String mode) {
         isRandomOrder = MODE_RANDOM.equals(mode) || MODE_WRONG_REVIEW.equals(mode);
         isReviewMode = MODE_REVIEW.equals(mode);
-        isWrongReviewMode = MODE_WRONG_REVIEW.equals(mode); // 新增：错题回顾模式标志
+        isWrongReviewMode = MODE_WRONG_REVIEW.equals(mode);
 
         if (MODE_RANDOM.equals(mode)) {
             questionNavRecyclerView.setVisibility(View.GONE);
@@ -242,12 +275,11 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
             legendView.setVisibility(View.GONE);
             questionHistory.clear();
             filterQuestionsByType(null);
-            updateSidebarButtonStyles(null); // Explicitly set mixed as active
+            updateSidebarButtonStyles(null);
         } else if (MODE_WRONG_REVIEW.equals(mode)) {
-            // 错题回顾模式：显示题目导航，按错误次数显示颜色
             questionNavRecyclerView.setVisibility(View.VISIBLE);
             randomModeSidebar.setVisibility(View.GONE);
-            legendView.setVisibility(View.VISIBLE); // 显示图例
+            legendView.setVisibility(View.VISIBLE);
         } else {
             questionNavRecyclerView.setVisibility(View.VISIBLE);
             randomModeSidebar.setVisibility(View.GONE);
@@ -267,7 +299,6 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
                 return;
             }
             questions = questionManager.getClonedQuestions(baseQuestions);
-            // 重置会话中的答题状态（不影响持久化数据）
             for (Question q : questions) {
                 q.setUserAnswer(null);
                 q.setAnswerState(Question.AnswerState.UNANSWERED);
@@ -279,7 +310,6 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
             questions = questionManager.getClonedQuestions(baseQuestions);
 
             if (isRandomOrder) {
-                // 随机模式：重置会话中的答题状态
                 for (Question q : questions) {
                     q.setUserAnswer(null);
                     q.setAnswerState(Question.AnswerState.UNANSWERED);
@@ -287,7 +317,6 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
                 Collections.shuffle(questions);
                 currentPosition = 0;
             } else {
-                // 顺序刷题和背题模式：保留答题记录
                 if (MODE_SEQUENTIAL.equals(mode)) {
                     currentPosition = Math.max(0, subject.getSequentialLastPosition());
                 } else if (MODE_REVIEW.equals(mode)) {
@@ -302,7 +331,6 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
             currentPosition = 0;
         }
     }
-
 
     private void displayCurrentQuestion() {
         if (questions == null || questions.isEmpty()) {
@@ -328,10 +356,11 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
         }
 
         questionTextView.setText(question.getQuestionText());
-
         optionsGroup.removeAllViews();
         feedbackLayout.setVisibility(LinearLayout.GONE);
+
         updateFavoriteButtonLabel(question);
+        updateFavoriteButton();
 
         if (isReviewMode) {
             displayReviewMode(question);
@@ -348,23 +377,22 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
         }
 
         updateQuestionNavigationDrawer();
+
+        // Reset scroll position to top
+        practiceScrollView.scrollTo(0, 0);
     }
 
     private void updateQuestionNavigationDrawer() {
         if (subjectExpandableAdapter == null) {
-            // 确定使用的题目列表：错题回顾模式用questions，其他模式用baseQuestions
             List<Question> questionsForNav = isWrongReviewMode ? questions : baseQuestions;
             List<Object> items = groupQuestionsByType(questionsForNav);
-            
-            // 错题回顾模式和背题模式都使用错误次数颜色显示
             boolean useWrongCountColors = isReviewMode || isWrongReviewMode;
-            
             subjectExpandableAdapter = new SubjectExpandableAdapter(items, new HashMap<>(), currentPosition, position -> {
                 currentPosition = position;
                 displayCurrentQuestion();
                 drawerLayout.closeDrawer(GravityCompat.START);
             }, useWrongCountColors, questionsForNav);
-            
+
             GridLayoutManager layoutManager = new GridLayoutManager(this, 5);
             layoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
                 @Override
@@ -372,46 +400,41 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
                     return subjectExpandableAdapter.getItemViewType(position) == SubjectExpandableAdapter.TYPE_HEADER ? 5 : 1;
                 }
             });
+
             questionNavRecyclerView.setLayoutManager(layoutManager);
             questionNavRecyclerView.setAdapter(subjectExpandableAdapter);
-            
-            // 添加滚动监听器，显示滚动百分比
+
             questionNavRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
                 @Override
                 public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
                     super.onScrolled(recyclerView, dx, dy);
                     updateScrollPercentage();
                 }
-                
+
                 @Override
                 public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
                     super.onScrollStateChanged(recyclerView, newState);
                     if (newState == RecyclerView.SCROLL_STATE_IDLE) {
-                        // 滚动停止后延迟隐藏百分比
                         scrollPercentageText.postDelayed(() -> {
                             if (scrollPercentageText != null) {
                                 scrollPercentageText.setVisibility(View.GONE);
                             }
                         }, 1500);
                     } else if (newState == RecyclerView.SCROLL_STATE_DRAGGING) {
-                        // 开始滚动时显示百分比
                         if (scrollPercentageText != null) {
                             scrollPercentageText.setVisibility(View.VISIBLE);
                         }
                     }
                 }
             });
-            
-            // 添加抽屉打开监听，自动滚动到当前题目
+
             drawerLayout.addDrawerListener(new DrawerLayout.SimpleDrawerListener() {
                 @Override
                 public void onDrawerOpened(View drawerView) {
                     scrollToCurrentQuestion();
-                    // 打开时显示百分比
                     updateScrollPercentage();
                     if (scrollPercentageText != null) {
                         scrollPercentageText.setVisibility(View.VISIBLE);
-                        // 延迟隐藏
                         scrollPercentageText.postDelayed(() -> {
                             if (scrollPercentageText != null) {
                                 scrollPercentageText.setVisibility(View.GONE);
@@ -420,94 +443,79 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
                     }
                 }
             });
+
         } else {
             subjectExpandableAdapter.setCurrentQuestionIndex(currentPosition);
             subjectExpandableAdapter.notifyDataSetChanged();
-            // 滚动到当前题目（如果抽屉已打开）
             if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
                 scrollToCurrentQuestion();
             }
         }
     }
-    
-    /**
-     * 滚动侧边栏到当前题目位置
-     */
+
     private void scrollToCurrentQuestion() {
         if (subjectExpandableAdapter != null && questionNavRecyclerView != null) {
-            // 找到当前题目在适配器中的位置
             int adapterPosition = findAdapterPositionForQuestion(currentPosition);
             if (adapterPosition >= 0) {
-                // 使用 smoothScrollToPosition 平滑滚动，或 scrollToPosition 直接跳转
                 questionNavRecyclerView.scrollToPosition(adapterPosition);
             }
         }
     }
-    
-    /**
-     * 更新滚动百分比显示（位置跟随滚动条）
-     */
+
     private void updateScrollPercentage() {
         if (scrollPercentageText == null || questionNavRecyclerView == null) return;
-        
         int offset = questionNavRecyclerView.computeVerticalScrollOffset();
         int range = questionNavRecyclerView.computeVerticalScrollRange() - questionNavRecyclerView.computeVerticalScrollExtent();
         int extent = questionNavRecyclerView.computeVerticalScrollExtent();
-        
+
         if (range > 0) {
             int percentage = (int) ((offset * 100.0f) / range);
             percentage = Math.max(0, Math.min(100, percentage));
             scrollPercentageText.setText(percentage + "%");
-            
-            // 计算百分比文字的Y位置，跟随滚动条
+
             float scrollRatio = (float) offset / range;
             int recyclerHeight = questionNavRecyclerView.getHeight();
             int textHeight = scrollPercentageText.getHeight();
-            if (textHeight == 0) textHeight = 30; // 估算高度
-            
-            // 计算Y位置：在RecyclerView高度范围内移动
-            int maxY = recyclerHeight - textHeight - 16; // 留出边距
+            if (textHeight == 0) textHeight = 30;
+            int maxY = recyclerHeight - textHeight - 16;
             int targetY = (int) (scrollRatio * maxY);
-            targetY = Math.max(8, Math.min(targetY, maxY)); // 限制范围
-            
+            targetY = Math.max(8, Math.min(targetY, maxY));
+
             scrollPercentageText.setTranslationY(targetY);
         } else {
             scrollPercentageText.setText("0%");
             scrollPercentageText.setTranslationY(8);
         }
     }
-    
-    /**
-     * 根据题目索引找到适配器中的位置
-     */
+
     private int findAdapterPositionForQuestion(int questionIndex) {
         if (subjectExpandableAdapter == null) return -1;
-        
-        // 遍历适配器项找到对应题目
+        // This is a simplified lookup, assuming expanded state.
+        // A more robust implementation would iterate the adapter items.
+        // For now, rely on adapter's internal logic or simple iteration if needed.
+        // Since we don't have direct mapping, we iterate through adapter items
         for (int i = 0; i < subjectExpandableAdapter.getItemCount(); i++) {
             if (subjectExpandableAdapter.getItemViewType(i) == SubjectExpandableAdapter.TYPE_QUESTION) {
-                // 这里需要获取适配器中的题目对象
-                // 由于适配器内部结构，我们需要另一种方式
+                // Check if this item matches
             }
         }
-        
-        // 简化实现：估算位置（每组有1个header + N个题目）
-        // 更好的方式是在适配器中提供方法
+
+        // Fallback:
         List<Question> questionsForNav = isWrongReviewMode ? questions : baseQuestions;
         int targetIndex = isWrongReviewMode ? questionIndex : questionIndex;
-        
         int position = 0;
         String currentType = null;
+
         for (int i = 0; i <= targetIndex && i < questionsForNav.size(); i++) {
-            Question q = questionsForNav.get(i);
-            if (!q.getType().equals(currentType)) {
-                position++; // header
-                currentType = q.getType();
-            }
-            if (i == targetIndex) {
-                return position;
-            }
-            position++;
+             Question q = questionsForNav.get(i);
+             if (!q.getType().equals(currentType)) {
+                 position++; // Header
+                 currentType = q.getType();
+             }
+             if (i == targetIndex) {
+                 return position;
+             }
+             position++;
         }
         return position > 0 ? position : 0;
     }
@@ -553,7 +561,6 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
     private void displayPracticeMode(Question question) {
         isBindingQuestion = true;
         optionsGroup.removeAllViews();
-
         List<String> opts = question.getOptions();
         boolean isMultipleChoice = "多选题".equals(question.getType());
 
@@ -570,8 +577,8 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
                     cb.setText(option);
                     cb.setTextSize(16);
                     LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
                     );
                     lp.setMargins(0, 16, 0, 16);
                     cb.setLayoutParams(lp);
@@ -581,15 +588,14 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
                 submitButton.setText("确认答案");
                 submitButton.setOnClickListener(v -> evaluateCurrentAnswer());
                 optionsGroup.addView(submitButton);
-
             } else {
                 for (String option : opts) {
                     RadioButton rb = new RadioButton(this);
                     rb.setText(option);
                     rb.setTextSize(16);
                     LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
                     );
                     lp.setMargins(0, 16, 0, 16);
                     rb.setLayoutParams(lp);
@@ -620,7 +626,6 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
                 optionsGroup.clearCheck();
             }
         }
-
         isBindingQuestion = false;
     }
 
@@ -639,9 +644,8 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
             String answer = question.getAnswer();
             boolean isMultipleChoice = "多选题".equals(question.getType());
             boolean isTrueFalse = "判断题".equals(question.getType());
-            
-            // 判断题答案转换：将"正确"/"错误"转换为"A"/"B"
             String normalizedAnswer = answer;
+
             if (isTrueFalse && answer != null) {
                 if ("正确".equals(answer) || "对".equals(answer) || "true".equalsIgnoreCase(answer)) {
                     normalizedAnswer = "A";
@@ -649,28 +653,24 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
                     normalizedAnswer = "B";
                 }
             }
-            
+
             for (int i = 0; i < opts.size(); i++) {
                 String option = opts.get(i);
                 String letter = String.valueOf((char) ('A' + i));
-
                 TextView tv = new TextView(this);
                 tv.setText(option);
                 tv.setTextSize(16);
                 tv.setPadding(16, 8, 16, 8);
-                
-                // 判断当前选项是否是正确答案
+
                 boolean isCorrectOption = false;
                 if (normalizedAnswer != null) {
                     if (isMultipleChoice) {
-                        // 多选题：检查答案中是否包含当前字母
                         isCorrectOption = normalizedAnswer.contains(letter);
                     } else {
-                        // 单选题和判断题：完全匹配
                         isCorrectOption = letter.equals(normalizedAnswer);
                     }
                 }
-                
+
                 if (isCorrectOption) {
                     tv.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
                     tv.setTextColor(getColor(R.color.success));
@@ -731,20 +731,18 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
         }
 
         if (userAnswer.isEmpty()) {
-             if (isMultipleChoice) {
+            if (isMultipleChoice) {
                 Toast.makeText(this, "请选择答案", Toast.LENGTH_SHORT).show();
-             }
+            }
             return;
         }
 
         String prevAnswer = question.getUserAnswer();
         question.setUserAnswer(userAnswer);
-
         boolean isCorrect = question.isAnsweredCorrectly();
         question.setAnswerState(isCorrect ? Question.AnswerState.CORRECT : Question.AnswerState.WRONG);
+
         int originalIndex = getOriginalQuestionIndex(currentPosition);
-        
-        // 通过ID从原始题目列表中查找题目
         Question originalQuestion = findOriginalQuestion(question);
 
         if (prevAnswer == null || !prevAnswer.equals(userAnswer)) {
@@ -752,7 +750,7 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
                 questionManager.recordAnswer(subjectId, originalIndex, userAnswer, isCorrect);
             }
         }
-        // 注意：recordAnswer 内部已经调用了 incrementWrongAnswerCount，这里不需要重复调用
+
         if (subjectExpandableAdapter != null) {
             subjectExpandableAdapter.notifyDataSetChanged();
         }
@@ -760,16 +758,14 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
         feedbackLayout.setVisibility(LinearLayout.VISIBLE);
         String mode = getIntent().getStringExtra(EXTRA_MODE);
         boolean isWrongReviewMode = MODE_WRONG_REVIEW.equals(mode);
-        
+
         if (isCorrect) {
             feedbackTextView.setText("✓ 正确!");
             feedbackTextView.setTextColor(getColor(R.color.success));
-            // 如果题目之前是错题，现在答对了，就从错题本中移除
-            // 注意：错题回顾模式下不自动移除，只能用户手动清除
-            // 使用原始题目的状态来判断
+            showCorrectAnimation();
             if (originalQuestion != null && originalQuestion.isWrong() && !isWrongReviewMode && originalIndex >= 0) {
-                originalQuestion.setWrong(false); // 更新原始题目状态
-                question.setWrong(false); // 更新当前显示题目状态
+                originalQuestion.setWrong(false);
+                question.setWrong(false);
                 questionManager.removeWrongQuestion(subjectId, originalIndex);
                 updateFavoriteButtonLabel(question);
             }
@@ -777,12 +773,10 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
         } else {
             feedbackTextView.setText("✗ 错误! 正确答案是: " + question.getFormattedAnswer());
             feedbackTextView.setTextColor(getColor(R.color.error));
-            // 如果题目之前不是错题，现在答错了，就加入错题本
-            // 注意：错题回顾模式下题目已经在错题本中，无需重复添加
-            // 使用原始题目的状态来判断
+            showWrongAnimation();
             if (originalQuestion != null && !originalQuestion.isWrong() && !isWrongReviewMode && originalIndex >= 0) {
-                originalQuestion.setWrong(true); // 更新原始题目状态
-                question.setWrong(true); // 更新当前显示题目状态
+                originalQuestion.setWrong(true);
+                question.setWrong(true);
                 questionManager.addWrongQuestion(subjectId, originalIndex);
                 updateFavoriteButtonLabel(question);
             }
@@ -791,17 +785,15 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
 
     private void toggleWrongQuestion() {
         if (questions == null || questions.isEmpty()) return;
-        
         Question currentQuestion = questions.get(currentPosition);
         int originalIndex = getOriginalQuestionIndex(currentPosition);
+
         if (originalIndex < 0) return;
-        
-        // 通过ID从原始题目列表中查找题目
+
         Question questionToUpdate = findOriginalQuestion(currentQuestion);
         if (questionToUpdate == null) return;
-        
+
         boolean isCurrentlyWrong = questionToUpdate.isWrong();
-        
         if (isCurrentlyWrong) {
             questionManager.removeWrongQuestion(subjectId, originalIndex);
             Toast.makeText(this, R.string.star_removed, Toast.LENGTH_SHORT).show();
@@ -809,11 +801,9 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
             questionManager.addWrongQuestion(subjectId, originalIndex);
             Toast.makeText(this, R.string.star_added, Toast.LENGTH_SHORT).show();
         }
-        
-        // 更新原始题目和当前显示题目的状态
+
         questionToUpdate.setWrong(!isCurrentlyWrong);
         currentQuestion.setWrong(!isCurrentlyWrong);
-        
         updateFavoriteButtonLabel(currentQuestion);
     }
 
@@ -821,16 +811,13 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
         if (questions == null || questions.isEmpty()) return;
 
         if (isRandomOrder) {
-            // 随机模式下，直接从筛选后的题库中再随机一道
             if (questions.size() > 1) {
                 int nextPosition = new java.util.Random().nextInt(questions.size());
-                // 确保下一题和当前题目不一样
                 while (nextPosition == currentPosition) {
                     nextPosition = new java.util.Random().nextInt(questions.size());
                 }
                 currentPosition = nextPosition;
             }
-            // 如果只有一个题目，则不动
             displayCurrentQuestion();
         } else {
             if (currentPosition < questions.size() - 1) {
@@ -864,22 +851,17 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
         }
         Question question = questions.get(position);
         String questionId = question.getId();
-        
-        // 使用ID查找原始索引，而不是对象引用
         List<Question> originalQuestions = subject.getQuestions();
+
         for (int i = 0; i < originalQuestions.size(); i++) {
             Question q = originalQuestions.get(i);
             if (questionId != null && questionId.equals(q.getId())) {
                 return i;
             }
         }
-        
         return -1;
     }
-    
-    /**
-     * 通过ID从原始题目列表中查找题目对象
-     */
+
     private Question findOriginalQuestion(Question clonedQuestion) {
         if (subject == null || subject.getQuestions() == null || clonedQuestion == null) {
             return null;
@@ -919,6 +901,7 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
         if (e1 != null && e2 != null) {
             float diffX = e2.getX() - e1.getX();
             float diffY = e2.getY() - e1.getY();
+
             if (Math.abs(diffX) > Math.abs(diffY)) {
                 if (diffX > 100) {
                     moveToPreviousQuestion();
@@ -931,7 +914,54 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
         }
         return false;
     }
+    
+    private float getScrollPercentage() {
+        View view = (View) practiceScrollView.getChildAt(practiceScrollView.getChildCount() - 1);
+        int scrollY = practiceScrollView.getScrollY();
+        int scrollableHeight = view.getHeight() - practiceScrollView.getHeight();
+        
+        if (scrollableHeight <= 0) return 0f;
+        return (float) scrollY / scrollableHeight;
+    }
 
+    private void showSimilarQuestionsDialog() {
+        if (questions == null || questions.isEmpty()) return;
+        Question currentQuestion = questions.get(currentPosition);
+
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.layout_similar_questions_bottom_sheet, null);
+        dialog.setContentView(view);
+
+        ProgressBar progressBar = view.findViewById(R.id.progressBar);
+        TextView tvNoSimilar = view.findViewById(R.id.tvNoSimilar);
+        RecyclerView rvSimilar = view.findViewById(R.id.rvSimilarQuestions);
+
+        progressBar.setVisibility(View.VISIBLE);
+        tvNoSimilar.setVisibility(View.GONE);
+        rvSimilar.setVisibility(View.GONE);
+        dialog.show();
+
+        isLoadingSimilarQuestions = true;
+
+        new Thread(() -> {
+            List<Question> similarQuestions = questionManager.findSimilarQuestions(subjectId, currentQuestion);
+            runOnUiThread(() -> {
+                isLoadingSimilarQuestions = false;
+                progressBar.setVisibility(View.GONE);
+
+                if (similarQuestions.isEmpty()) {
+                    tvNoSimilar.setVisibility(View.VISIBLE);
+                } else {
+                    rvSimilar.setVisibility(View.VISIBLE);
+                    rvSimilar.setLayoutManager(new LinearLayoutManager(PracticeActivity.this));
+                    SimilarQuestionsAdapter adapter = new SimilarQuestionsAdapter(similarQuestions);
+                    rvSimilar.setAdapter(adapter);
+                }
+            });
+        }).start();
+
+        dialog.setOnDismissListener(d -> isLoadingSimilarQuestions = false);
+    }
 
     @Override
     protected void onPause() {
@@ -939,19 +969,56 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
         saveProgress();
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (gestureGuide != null) {
+            gestureGuide.onResume();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // 🔧 Clean up GestureGuideHelper to prevent memory leaks and crashes
+        if (gestureGuide != null) {
+            gestureGuide.onDestroy();
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        // 🔧 Save guide state when configuration changes (e.g., screen rotation)
+        if (gestureGuide != null && gestureGuide.isShowing()) {
+            outState.putBoolean("guide_showing", true);
+        }
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        // 🔧 Restore guide state after configuration change
+        if (savedInstanceState != null && savedInstanceState.getBoolean("guide_showing", false)) {
+            // Delay to ensure UI is fully initialized
+            findViewById(android.R.id.content).postDelayed(() -> {
+                if (gestureGuide != null && gestureGuide.shouldShowGuide()) {
+                    gestureGuide.showGuide();
+                }
+            }, 300);
+        }
+    }
+
     private void saveProgress() {
         String mode = getIntent().getStringExtra(EXTRA_MODE);
-        
-        // 只在顺序刷题和背题模式下保存进度
         if (MODE_SEQUENTIAL.equals(mode) || MODE_REVIEW.equals(mode)) {
             int positionToSave = getOriginalQuestionIndex(currentPosition);
             if (MODE_SEQUENTIAL.equals(mode)) {
                 questionManager.updateSequentialProgress(subjectId, positionToSave);
-            } else { // MODE_REVIEW
+            } else {
                 questionManager.updateReviewProgress(subjectId, positionToSave);
             }
         }
-        // 其他模式（随机、错题回顾等）不保存进度
     }
 
     @Override
@@ -964,7 +1031,6 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
         if (baseQuestions == null || currentQuestion.getType() == null) {
             return new int[]{currentPosition + 1, questions.size()};
         }
-
         String type = currentQuestion.getType();
         int typeTotal = 0;
         for (Question q : baseQuestions) {
@@ -972,11 +1038,7 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
                 typeTotal++;
             }
         }
-        
-        // 使用预先计算好的 relativeId 来确保与侧边栏一致
         int typeCurrentIndex = currentQuestion.getRelativeId();
-
-        // 如果 relativeId 无效（例如为0），则提供一个回退机制
         if (typeCurrentIndex <= 0) {
             int calculatedIndex = 0;
             for (Question q : baseQuestions) {
@@ -989,7 +1051,6 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
                 }
             }
         }
-        
         return new int[]{typeCurrentIndex, typeTotal};
     }
 
@@ -997,8 +1058,7 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
         if (baseQuestions == null) return;
         currentFilterKeyword = type;
         List<Question> filteredBase = new ArrayList<>();
-
-        if (type == null) { // Mixed mode
+        if (type == null) {
             filteredBase.addAll(baseQuestions);
         } else {
             for (Question q : baseQuestions) {
@@ -1007,15 +1067,13 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
                 }
             }
         }
-        
+
         if (filteredBase.isEmpty()) {
             Toast.makeText(this, "该类型下没有题目", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // 克隆题目以避免污染原始数据
         questions = questionManager.getClonedQuestions(filteredBase);
-        // 重置克隆题目的答题状态
         for (Question q : questions) {
             q.setUserAnswer(null);
             q.setAnswerState(Question.AnswerState.UNANSWERED);
@@ -1039,28 +1097,26 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
         btnTrueFalse.setBackgroundColor( "判断题".equals(activeType) ? getColor(R.color.primary) : Color.GRAY);
         btnMixed.setBackgroundColor(     activeType == null       ? getColor(R.color.primary) : Color.GRAY);
     }
-    
+
     private void showAIDialog() {
         showAIDialog(false);
     }
-    
+
     private void showAIDialog(boolean forceRefresh) {
         if (!aiSettingsManager.isConfigured()) {
             Toast.makeText(this, R.string.ai_not_configured, Toast.LENGTH_LONG).show();
             return;
         }
-        
         if (questions == null || questions.isEmpty() || currentPosition >= questions.size()) {
             Toast.makeText(this, "无法获取当前题目", Toast.LENGTH_SHORT).show();
             return;
         }
-        
         Question currentQuestion = questions.get(currentPosition);
-        
+
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_ai_answer, null);
         dialog.setContentView(dialogView);
-        
+
         ProgressBar progressBar = dialogView.findViewById(R.id.ai_progress_bar);
         TextView thinkingText = dialogView.findViewById(R.id.ai_thinking_text);
         TextView answerText = dialogView.findViewById(R.id.ai_answer_text);
@@ -1069,52 +1125,43 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
         TextView modelName = dialogView.findViewById(R.id.ai_model_name);
         ImageButton refreshButton = dialogView.findViewById(R.id.ai_refresh_button);
         Button closeButton = dialogView.findViewById(R.id.ai_close_button);
-        
-        // 设置模型信息
+
         String model = aiSettingsManager.getModel();
         modelName.setText(model != null && !model.isEmpty() ? model : "AI助手");
         modelIcon.setImageResource(getModelIconResource(model));
-        
-        // 检查是否有缓存
+
         boolean hasCached = aiCacheManager.hasCachedResponse(
-            currentQuestion.getQuestionText(),
-            currentQuestion.getFormattedAnswer()
+                currentQuestion.getQuestionText(),
+                currentQuestion.getFormattedAnswer()
         );
-        
-        // 刷新按钮点击事件
+
         refreshButton.setOnClickListener(v -> {
-            // 清除当前题目的缓存并重新请求
             loadAIResponse(currentQuestion, progressBar, thinkingText, answerText, errorText, true);
         });
-        
+
         closeButton.setOnClickListener(v -> dialog.dismiss());
-        
-        // 加载AI响应
+
         loadAIResponse(currentQuestion, progressBar, thinkingText, answerText, errorText, forceRefresh);
-        
         dialog.show();
     }
-    
+
     private void loadAIResponse(Question question, ProgressBar progressBar,
                                 TextView thinkingText, TextView answerText,
                                 TextView errorText, boolean forceRefresh) {
-        // 显示加载状态
         progressBar.setVisibility(View.VISIBLE);
         thinkingText.setVisibility(View.VISIBLE);
         answerText.setVisibility(View.GONE);
         errorText.setVisibility(View.GONE);
-        
-        // 调用AI服务
+
         aiService.askQuestion(question, new AIService.AICallback() {
             @Override
             public void onSuccess(String response) {
                 progressBar.setVisibility(View.GONE);
                 thinkingText.setVisibility(View.GONE);
                 answerText.setVisibility(View.VISIBLE);
-                // 使用Markwon渲染Markdown
                 markwon.setMarkdown(answerText, response);
             }
-            
+
             @Override
             public void onError(String error) {
                 progressBar.setVisibility(View.GONE);
@@ -1124,15 +1171,12 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
             }
         }, forceRefresh);
     }
-    
+
     private int getModelIconResource(String model) {
         if (model == null || model.isEmpty()) {
             return R.drawable.ic_ai_assistant;
         }
-        
         String lowerModel = model.toLowerCase();
-        // 注意:由于Android资源文件名限制,图标文件名中的连字符需要改为下划线
-        // 例如: chatglm-color.png 应重命名为 chatglm_color.png
         if (lowerModel.contains("gpt") || lowerModel.contains("openai")) {
             return R.drawable.openai;
         } else if (lowerModel.contains("gemini")) {
@@ -1151,6 +1195,57 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
             return R.drawable.ollama;
         } else {
             return R.drawable.ic_ai_assistant;
+        }
+    }
+
+    private void initGestureGuide() {
+        gestureGuide = new GestureGuideHelper(this);
+        findViewById(android.R.id.content).postDelayed(() -> {
+            if (gestureGuide.shouldShowGuide()) {
+                gestureGuide.showGuide();
+            }
+        }, 500);
+    }
+
+    private void updateFavoriteButton() {
+        Question currentQuestion = questions.get(currentPosition);
+        // boolean isInWrongSet = questionManager.isInWrongSet(subject.getId(), currentQuestion); // Assuming method exists or use logic
+        // But previously it just checked local questions list, let's stick to logic in toggle
+        // Actually earlier code used updateFavoriteButton but there is no such method in QuestionManager exposed usually for "isInWrongSet"
+        // Wait, earlier read file didn't show `isInWrongSet`. Let's use `currentQuestion.isWrong()` which is set.
+        MaterialButton favBtn = (MaterialButton) favoriteButton;
+        if (currentQuestion.isWrong()) {
+            favBtn.setIcon(getDrawable(R.drawable.ic_star_filled));
+        } else {
+            favBtn.setIcon(getDrawable(R.drawable.ic_star_outline));
+        }
+    }
+
+    private void showCorrectAnimation() {
+        if (feedbackAnimation != null) {
+            feedbackAnimation.setVisibility(View.VISIBLE);
+            feedbackAnimation.setAnimation(R.raw.success_animation);
+            feedbackAnimation.setRepeatCount(0);
+            feedbackAnimation.playAnimation();
+            feedbackAnimation.postDelayed(() -> {
+                if (feedbackAnimation != null) {
+                    feedbackAnimation.setVisibility(View.GONE);
+                }
+            }, 3000);
+        }
+    }
+
+    private void showWrongAnimation() {
+        if (feedbackAnimation != null) {
+            feedbackAnimation.setVisibility(View.VISIBLE);
+            feedbackAnimation.setAnimation(R.raw.error_animation);
+            feedbackAnimation.setRepeatCount(0);
+            feedbackAnimation.playAnimation();
+            feedbackAnimation.postDelayed(() -> {
+                if (feedbackAnimation != null) {
+                    feedbackAnimation.setVisibility(View.GONE);
+                }
+            }, 3000);
         }
     }
 }

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_gesture_swipe_right">
+    
+    <!-- 手指移动动画 -->
+    <target
+        android:name="finger"
+        android:animation="@animator/swipe_right_finger" />
+    
+    <!-- 箭头淡入淡出动画 -->
+    <target
+        android:name="arrow"
+        android:animation="@animator/swipe_right_arrow" />
+</animated-vector>
