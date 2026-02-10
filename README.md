@@ -258,14 +258,6 @@ python scraper.py
 </div>
 
 ---
-## ⭐ Star图
-
-<div align="center">
-  <a href="https://api.star-history.com/charts.html?repos=keggin-CHN/njfu_grinding" target="_blank" rel="noopener">
-    <img alt="Star history for keggin-CHN/njfu_grinding" src="https://api.star-history.com/svg?repos=keggin-CHN/njfu_grinding&width=700" />
-  </a>
-  <p><i>Star 增长趋势</i></p>
-</div>
 
 
 ## 👥 贡献
