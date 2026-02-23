@@ -614,6 +614,7 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
                     }
                 }
             }
+            evaluateCurrentAnswer(true);
         } else {
             if (!isMultipleChoice) {
                 optionsGroup.clearCheck();
