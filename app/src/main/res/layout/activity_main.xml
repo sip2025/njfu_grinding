@@ -57,18 +57,6 @@ android:layout_height="wrap_content"
 android:orientation="vertical"
 android:padding="16dp"
 android:background="@android:color/transparent">
-<TextView
-android:id="@+id/hitokoto_text"
-android:layout_width="match_parent"
-android:layout_height="wrap_content"
-android:layout_marginBottom="12dp"
-android:background="@drawable/rounded_edit_text_bg"
-android:gravity="center"
-android:lineSpacingMultiplier="1.6"
-android:padding="16dp"
-android:text="@string/loading"
-android:textColor="@color/primary"
-android:textSize="16sp" />
 <LinearLayout
 android:layout_width="match_parent"
 android:layout_height="wrap_content"
