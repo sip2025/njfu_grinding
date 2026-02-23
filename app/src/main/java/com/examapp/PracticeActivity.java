@@ -781,6 +781,9 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
                 updateFavoriteButtonLabel(question);
             }
             if (question.getExplanation() != null && !question.getExplanation().isEmpty()) {
+                LinearLayout container = new LinearLayout(this);
+                container.setOrientation(LinearLayout.VERTICAL);
+                
                 TextView explanationTitle = new TextView(this);
                 explanationTitle.setText("解析:");
                 explanationTitle.setTextSize(16);
@@ -793,9 +796,9 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
                 explanationText.setTextSize(14);
                 explanationText.setPadding(16, 0, 16, 16);
                 container.addView(explanationText);
-            }
 
-            optionsGroup.addView(container);
+                optionsGroup.addView(container);
+            }
         }
     }
 
