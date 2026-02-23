@@ -697,6 +697,10 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
     }
 
     private void evaluateCurrentAnswer() {
+        evaluateCurrentAnswer(false);
+    }
+
+    private void evaluateCurrentAnswer(boolean isExistUserAnswer) {
         Question question = questions.get(currentPosition);
         if (question == null) return;
 
@@ -739,7 +743,7 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
         Question originalQuestion = findOriginalQuestion(question);
 
         if (prevAnswer == null || !prevAnswer.equals(userAnswer)) {
-            if (originalIndex >= 0) {
+            if (originalIndex >= 0 && !isExistUserAnswer) {
                 questionManager.recordAnswer(subjectId, originalIndex, userAnswer, isCorrect);
             }
         }
@@ -762,7 +766,9 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
                 questionManager.removeWrongQuestion(subjectId, originalIndex);
                 updateFavoriteButtonLabel(question);
             }
-            optionsGroup.postDelayed(this::moveToNextQuestion, 400);
+            if (!isExistUserAnswer) {
+                optionsGroup.postDelayed(this::moveToNextQuestion, 400);
+            }
         } else {
             feedbackTextView.setText("✗ 错误! 正确答案是: " + question.getFormattedAnswer());
             feedbackTextView.setTextColor(getColor(R.color.error));
