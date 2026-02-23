@@ -28,7 +28,6 @@ import com.examapp.data.AICacheManager;
 import com.examapp.service.AIService;
 import com.examapp.model.Question;
 import com.examapp.model.Subject;
-import com.examapp.util.DraggableFABHelper;
 import com.examapp.util.GestureGuideHelper;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -80,8 +79,6 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
     private GestureDetectorCompat gestureDetector;
     private boolean isBindingQuestion;
 
-    private FloatingActionButton aiAssistantButton;
-    private DraggableFABHelper draggableFABHelper;
     private GestureGuideHelper gestureGuide;
     private LottieAnimationView feedbackAnimation;
     private boolean isFavorited = false;
@@ -169,10 +166,6 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
         feedbackLayout = findViewById(R.id.feedback_layout);
         feedbackTextView = findViewById(R.id.feedback_text);
         feedbackAnimation = findViewById(R.id.feedback_animation);
-        aiAssistantButton = findViewById(R.id.ai_assistant_button);
-
-        draggableFABHelper = new DraggableFABHelper();
-        draggableFABHelper.makeDraggable(aiAssistantButton, v -> showAIDialog());
 
         nextButton.setOnClickListener(v -> moveToNextQuestion());
         previousButton.setOnClickListener(v -> moveToPreviousQuestion());
@@ -781,23 +774,27 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
                 updateFavoriteButtonLabel(question);
             }
             if (question.getExplanation() != null && !question.getExplanation().isEmpty()) {
-                LinearLayout container = new LinearLayout(this);
-                container.setOrientation(LinearLayout.VERTICAL);
-                
-                TextView explanationTitle = new TextView(this);
-                explanationTitle.setText("解析:");
-                explanationTitle.setTextSize(16);
-                explanationTitle.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-                explanationTitle.setPadding(16, 16, 16, 8);
-                container.addView(explanationTitle);
+                LinearLayout container = optionsGroup.findViewById(R.id.ai_assistant_button);
+                if (container == null) {
+                    container = new LinearLayout(this);
+                    container.setId(R.id.ai_assistant_button);
+                    container.setOrientation(LinearLayout.VERTICAL);
 
-                TextView explanationText = new TextView(this);
-                explanationText.setText(question.getExplanation());
-                explanationText.setTextSize(14);
-                explanationText.setPadding(16, 0, 16, 16);
-                container.addView(explanationText);
+                    TextView explanationTitle = new TextView(this);
+                    explanationTitle.setText("解析:");
+                    explanationTitle.setTextSize(16);
+                    explanationTitle.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+                    explanationTitle.setPadding(16, 16, 16, 8);
+                    container.addView(explanationTitle);
 
-                optionsGroup.addView(container);
+                    TextView explanationText = new TextView(this);
+                    explanationText.setText(question.getExplanation());
+                    explanationText.setTextSize(14);
+                    explanationText.setPadding(16, 0, 16, 16);
+                    container.addView(explanationText);
+
+                    optionsGroup.addView(container);
+                }
             }
         }
     }
