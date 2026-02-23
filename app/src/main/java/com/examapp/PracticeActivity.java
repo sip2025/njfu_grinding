@@ -780,6 +780,22 @@ public class PracticeActivity extends BaseActivity implements GestureDetector.On
                 questionManager.addWrongQuestion(subjectId, originalIndex);
                 updateFavoriteButtonLabel(question);
             }
+            if (question.getExplanation() != null && !question.getExplanation().isEmpty()) {
+                TextView explanationTitle = new TextView(this);
+                explanationTitle.setText("解析:");
+                explanationTitle.setTextSize(16);
+                explanationTitle.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+                explanationTitle.setPadding(16, 16, 16, 8);
+                container.addView(explanationTitle);
+
+                TextView explanationText = new TextView(this);
+                explanationText.setText(question.getExplanation());
+                explanationText.setTextSize(14);
+                explanationText.setPadding(16, 0, 16, 16);
+                container.addView(explanationText);
+            }
+
+            optionsGroup.addView(container);
         }
     }
 
