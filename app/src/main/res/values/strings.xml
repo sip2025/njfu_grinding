@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-<string name="app_name">NJFU grinding</string>
+<string name="app_name">题库</string>
 <string name="practice">练习</string>
 <string name="mock_exam">模拟考试</string>
 <string name="wrong_questions">错题本</string>
