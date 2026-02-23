@@ -30,7 +30,6 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.examapp.adapter.SubjectAdapter;
-import com.examapp.data.HitokotoManager;
 import com.examapp.data.QuestionManager;
 import com.examapp.data.SettingsManager;
 import com.examapp.model.Subject;
@@ -51,18 +50,11 @@ public class MainActivity extends BaseActivity implements NavigationView.OnNavig
     private LinearLayout emptyStateLayout;
     private QuestionManager questionManager;
     private SettingsManager settingsManager;
-    private TextView hitokotoText;
     private Button studyModeButton;
     private Button mockExamButton;
     private String selectedSubjectId;
-    private String lastHitokoto = "";
     private SyncClient syncClient;
     private SyncProgressDialog syncProgressDialog;
-
-    private final Handler hitokotoHandler = new Handler(Looper.getMainLooper());
-    private final Runnable hitokotoRefreshRunnable = this::loadHitokoto;
-
-    private static final long HITOKOTO_REFRESH_INTERVAL_MS = 30 * 60 * 1000L;
 
     // Drawer 手势相关
     private float drawerGestureStartX;
@@ -79,8 +71,6 @@ public class MainActivity extends BaseActivity implements NavigationView.OnNavig
         setContentView(R.layout.activity_main);
 
         initializeUI();
-        // 每次启动强制刷新
-        forceRefreshHitokoto();
         loadSubjects();
     }
 
@@ -136,57 +126,13 @@ public class MainActivity extends BaseActivity implements NavigationView.OnNavig
         subjectRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         setupItemTouchHelper();
         emptyStateLayout = findViewById(R.id.empty_state_layout);
-        hitokotoText = findViewById(R.id.hitokoto_text);
         studyModeButton = findViewById(R.id.study_mode_button);
         mockExamButton = findViewById(R.id.mock_exam_button);
         mockExamButton.setVisibility(View.GONE); // Hide mock exam button
 
         studyModeButton.setOnClickListener(v -> openStudyMode());
-        hitokotoText.setOnClickListener(v -> forceRefreshHitokoto());
 
         updateActionButtonsState();
-    }
-
-    private void forceRefreshHitokoto() {
-        lastHitokoto = ""; // 清空保证不会被重复过滤
-        loadHitokoto();
-    }
-
-    private void loadHitokoto() {
-        hitokotoHandler.removeCallbacks(hitokotoRefreshRunnable);
-        if (hitokotoText != null) {
-            hitokotoText.setText(getString(R.string.loading));
-        }
-        new Thread(() -> {
-            String hitokoto = fetchUniqueHitokoto();
-            runOnUiThread(() -> {
-                if (hitokotoText != null) {
-                    hitokotoText.setText(hitokoto);
-                }
-                lastHitokoto = hitokoto;
-                hitokotoHandler.postDelayed(hitokotoRefreshRunnable, HITOKOTO_REFRESH_INTERVAL_MS);
-            });
-        }).start();
-    }
-
-    private String fetchUniqueHitokoto() {
-        String result = HitokotoManager.getHitokoto();
-        int retry = 0;
-        while (result.equals(lastHitokoto) && retry < 2) {
-            result = HitokotoManager.getHitokoto();
-            retry++;
-        }
-        return result;
-    }
-
-    private void startHitokotoRefresh() {
-        stopHitokotoRefresh();
-        // 每次 resume 强制再刷一次
-        forceRefreshHitokoto();
-    }
-
-    private void stopHitokotoRefresh() {
-        hitokotoHandler.removeCallbacks(hitokotoRefreshRunnable);
     }
 
     private void setupItemTouchHelper() {
@@ -407,13 +353,11 @@ public class MainActivity extends BaseActivity implements NavigationView.OnNavig
     protected void onResume() {
         super.onResume();
         loadSubjects();
-        startHitokotoRefresh();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        stopHitokotoRefresh();
     }
 
     @Override
