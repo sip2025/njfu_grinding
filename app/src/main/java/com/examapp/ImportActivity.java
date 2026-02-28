@@ -172,7 +172,7 @@ return container;
 private void openFilePicker() {
 Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
 intent.addCategory(Intent.CATEGORY_OPENABLE);
-intent.setType("application/json");
+intent.setType("application/octet-stream");
 startActivityForResult(intent, FILE_PICKER_REQUEST_CODE);
 }
 @Override
