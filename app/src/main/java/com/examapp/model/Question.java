@@ -120,13 +120,6 @@ return false;
 if ("多选题".equals(type)) {
 return sortString(answer).equals(sortString(userAnswer));
 }
-if ("判断题".equals(type)) {
-String convertedAnswer = userAnswer;
-if ("A".equals(userAnswer)) {
-convertedAnswer = "正确";
-} else if ("B".equals(userAnswer)) {
-convertedAnswer = "错误";
-}
 return answer.equals(convertedAnswer);
 }
 return answer.equals(userAnswer);
