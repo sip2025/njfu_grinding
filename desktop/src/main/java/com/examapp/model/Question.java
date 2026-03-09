@@ -224,17 +224,6 @@ public class Question implements Serializable {
             return sortString(answer).equals(sortString(userAnswer));
         }
 
-        // 判断题：转换A/B为正确/错误
-        if ("判断题".equals(type)) {
-            String convertedAnswer = userAnswer;
-            if ("A".equals(userAnswer)) {
-                convertedAnswer = "正确";
-            } else if ("B".equals(userAnswer)) {
-                convertedAnswer = "错误";
-            }
-            return answer.equals(convertedAnswer);
-        }
-
         // 单选题：直接比较
         return answer.equals(userAnswer);
     }
