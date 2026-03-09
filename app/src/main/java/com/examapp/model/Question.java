@@ -120,8 +120,6 @@ return false;
 if ("多选题".equals(type)) {
 return sortString(answer).equals(sortString(userAnswer));
 }
-return answer.equals(convertedAnswer);
-}
 return answer.equals(userAnswer);
 }
 public String getType() {
