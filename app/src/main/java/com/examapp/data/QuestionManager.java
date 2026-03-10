@@ -325,9 +325,13 @@ public class QuestionManager {
         Collections.shuffle(trueOrFalse);
 
         List<Question> exam = new ArrayList<>();
-        exam.addAll(singleChoice.subList(0, Math.min(60, singleChoice.size())));
-        exam.addAll(multipleChoice.subList(0, Math.min(10, multipleChoice.size())));
-        exam.addAll(trueOrFalse.subList(0, Math.min(10, trueOrFalse.size())));
+        int totalQuestions = 100;
+        int singleCount = Math.min(singleChoice.size(), Math.min(60, totalQuestions));
+        int multipleCount = Math.min(multipleChoice.size(), Math.min(20, totalQuestions - singleCount));
+        int trueFalseCount = Math.min(trueOrFalse.size(), totalQuestions - singleCount - multipleCount);
+        exam.addAll(singleChoice.subList(0, singleCount));
+        exam.addAll(multipleChoice.subList(0, multipleCount));
+        exam.addAll(trueOrFalse.subList(0, trueFalseCount));;
 
         return getClonedQuestions(exam);
     }
@@ -344,13 +348,6 @@ public class QuestionManager {
     }
 
     public int scoreQuestion(String subjectId, Question question) {
-        if (question == null || question.getType() == null) {
-            return 1;
-        }
-        String type = question.getType();
-        if ("多选题".equals(type) || "判断题".equals(type)) {
-            return 2;
-        }
         return 1;
     }
 
